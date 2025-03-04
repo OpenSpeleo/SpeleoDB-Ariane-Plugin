@@ -1,0 +1,37 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+}
+
+plugins {
+    id "org.javamodularity.moduleplugin" version "1.8.15"
+    id 'org.openjfx.javafxplugin' version "0.1.0"
+}
+
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'org.openjfx.javafxplugin'
+
+    javafx {
+        version = "23.0.1"
+        modules = [ 'javafx.controls', 'javafx.base' ,'javafx.graphics','javafx.fxml','javafx.swing','javafx.media']
+    }
+
+    group 'arianesline'
+    version '25.1.1'
+
+    sourceCompatibility = 21
+    targetCompatibility = 21
+
+    repositories {
+        mavenCentral()
+    }
+    compileJava {
+
+    }
+    
+}
