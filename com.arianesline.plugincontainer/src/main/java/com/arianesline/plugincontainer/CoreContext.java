@@ -7,6 +7,8 @@ package com.arianesline.plugincontainer;
 
 // NOTE: Auto-generated Javadoc
 
+import javafx.concurrent.Task;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -23,7 +25,7 @@ public final class CoreContext {
      */
     private final static CoreContext INSTANCE = new CoreContext();
 
-    public final ExecutorService executorService = Executors.newCachedThreadPool();
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
     /**
      * Controller for the main Stage content.
      */
@@ -32,7 +34,7 @@ public final class CoreContext {
     public CaveSurveyImpl dummyCave;
 
     public CoreContext() {
-        dummyCave=new CaveSurveyImpl();
+        dummyCave = new CaveSurveyImpl();
     }
 
     /**
@@ -44,4 +46,11 @@ public final class CoreContext {
         return INSTANCE;
     }
 
+    public void shutdownNow() {
+        executorService.shutdownNow();
+    }
+
+    public void executeTask(Task<Void> task) {
+        executorService.execute(task);
+    }
 }

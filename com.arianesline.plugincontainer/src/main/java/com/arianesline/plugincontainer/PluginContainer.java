@@ -30,7 +30,7 @@ public class PluginContainer {
     public void loadPlugins() {
         PlugingLoadTask plugingLoadTask = new PlugingLoadTask();
         plugingLoadTask.setOnSucceeded((e) -> Platform.runLater(() -> core.mainController.updateUIforPlugin()));
-       core.executorService.execute(plugingLoadTask);
+        core.executeTask(plugingLoadTask);
     }
 
     private void loadPlugins(ModuleLayer pluginModuleLayer) {
@@ -76,7 +76,7 @@ public class PluginContainer {
         }
 
         @Override
-        protected Void call()  {
+        protected Void call() {
             var pluginURL = "./plugins";
             ModuleLayer pluginModuleLayer = createPluginLayer(pluginURL);
             loadPlugins(pluginModuleLayer);

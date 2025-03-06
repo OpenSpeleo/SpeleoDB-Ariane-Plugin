@@ -27,4 +27,13 @@ public class PluginContainerApplication extends Application {
     public static void main(String[] args) {
         launch();
     }
+
+    /* (non-Javadoc)
+     * @see javafx.application.Application#stop()
+     */
+    @Override
+    public void stop() throws Exception {
+        super.stop(); //To change body of generated methods, choose Tools | Templates.
+        CoreContext.getInstance().shutdownNow();
+    }
 }
