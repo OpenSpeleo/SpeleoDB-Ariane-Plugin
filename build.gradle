@@ -12,6 +12,20 @@ plugins {
     id 'org.openjfx.javafxplugin' version "0.1.0"
 }
 
+tasks.register('copyPlugin', Copy) {
+
+    group 'build'
+    description 'Copies the plugins into the main project plugins folder'
+
+    doLast {
+        println 'Plugins Copied'
+    }
+
+
+    from "./com.arianesline.ariane.plugin.speleoDB/build/libs"
+    into "./com.arianesline.plugincontainer/plugins"
+
+}
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'org.openjfx.javafxplugin'
