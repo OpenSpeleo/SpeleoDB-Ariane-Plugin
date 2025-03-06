@@ -1,0 +1,1 @@
+Copy the plugin JAR files you want to test in this folder.
