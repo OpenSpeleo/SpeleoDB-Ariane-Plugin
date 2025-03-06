@@ -5,14 +5,14 @@ import com.arianesline.ariane.plugin.api.PluginInterface;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.control.Button;
-import javafx.scene.control.ContentDisplay;
-import javafx.scene.control.Label;
-import javafx.scene.control.Tooltip;
+import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import java.net.URL;
+import java.security.cert.PolicyNode;
 import java.util.Comparator;
 import java.util.ResourceBundle;
 
@@ -21,10 +21,13 @@ import static com.arianesline.ariane.plugin.api.DataServerCommands.SAVE;
 import static com.arianesline.plugincontainer.PluginContainerApplication.pluginContainer;
 
 public class PluginContainerController implements Initializable {
-    public Label messageLabel;
-    public VBox mainVBox;
 
     private final CoreContext core = CoreContext.getInstance();
+
+    public TabPane mainTabPane;
+    public AnchorPane mainAnchor;
+    public ListView<String> mainListView;
+    public HBox mainHBox;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -32,7 +35,7 @@ public class PluginContainerController implements Initializable {
     }
 
     public void showMessage(String message) {
-        messageLabel.setText(message);
+        mainListView.getItems().add(message);
     }
 
     public void updateUIforPlugin() {
@@ -40,6 +43,8 @@ public class PluginContainerController implements Initializable {
         pluginContainer.getDataServerPlugins().stream()
                 .sorted(Comparator.comparing(Plugin::getName))
                 .forEach(plugin -> {
+
+                    //Case the Plugin UI is displayed in a separate windows
                     if (plugin.getInterfaceType() == PluginInterface.WINDOW) {
                         ImageView imageView = new ImageView();
                         imageView.setFitHeight(32);
@@ -56,7 +61,8 @@ public class PluginContainerController implements Initializable {
                         button.setGraphic(imageView);
                         button.setTooltip(new Tooltip(plugin.getName()));
 
-                        mainVBox.getChildren().add(button);
+
+                        mainHBox.getChildren().add(button);
 
                         plugin.getCommandProperty().addListener((observableValue, s, command) -> {
                             if (command.equals(LOAD.name())) {
@@ -66,6 +72,26 @@ public class PluginContainerController implements Initializable {
                                 });
                             } else if (command.equals(SAVE.name())) {
                                 core.mainController.showMessage("SAVE REQUESTED");
+                            }
+                        });
+                    }
+
+                    //Case the plugin is integrated in mainUI as Tab on the left Ariane panel
+                    if (plugin.getInterfaceType() == PluginInterface.LEFT_TAB) {
+                        Tab tab = new Tab(plugin.getName());
+                        tab.setContent(plugin.getUINode());
+                        mainTabPane.getTabs().add(tab);
+
+                        plugin.getCommandProperty().addListener((observableValue, s, command) -> {
+                            if (command.equals(LOAD.name())) {
+                                Platform.runLater(() -> {
+                                    core.mainController.showMessage("LOAD REQUESTED");
+                                    core.mainController.showMessage(plugin.getSurveyFile().getName());
+                                    plugin.setSurvey(core.dummyCave);
+                                });
+                            } else if (command.equals(SAVE.name())) {
+                                core.mainController.showMessage("SAVE REQUESTED");
+                                core.mainController.showMessage(plugin.getSurveyFile().getName());
                             }
                         });
                     }

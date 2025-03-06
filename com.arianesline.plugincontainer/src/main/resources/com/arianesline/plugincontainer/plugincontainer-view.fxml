@@ -1,18 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import java.net.URL?>
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
 
-<VBox fx:id="mainVBox" alignment="CENTER" spacing="20.0" style="-fx-background-color: #333333;" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/22" fx:controller="com.arianesline.plugincontainer.PluginContainerController">
-  <stylesheets>
-    <URL value="@./fxmlmain.css" />
-  </stylesheets>
-  <padding>
-    <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
-  </padding>
-
-  <Label fx:id="messageLabel" textFill="#6458f5" />
-
-</VBox>
+<AnchorPane fx:id="mainAnchor" minHeight="800.0" minWidth="800.0" style="-fx-background-color: #333333;" xmlns="http://javafx.com/javafx/22" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.arianesline.plugincontainer.PluginContainerController">
+    <stylesheets>
+        <URL value="@./fxmlmain.css" />
+    </stylesheets>
+    <TabPane fx:id="mainTabPane" prefHeight="200.0" side="LEFT" tabClosingPolicy="UNAVAILABLE" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="0.0" />
+   <ListView fx:id="mainListView" prefHeight="200.0" prefWidth="250.0" AnchorPane.bottomAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="50.0" />
+   <HBox fx:id="mainHBox" layoutX="386.0" layoutY="-26.0" prefHeight="50.0" prefWidth="250.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" />
+</AnchorPane>
