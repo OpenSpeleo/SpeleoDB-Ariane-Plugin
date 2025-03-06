@@ -1,0 +1,13 @@
+.slider .axis {
+    -fx-tick-label-fill: #FFFFFF;
+    -fx-tick-length: 5px;
+    -fx-minor-tick-length: 3px;
+    -fx-border-color: null;
+}
+
+.range-slider .axis {
+    -fx-tick-label-fill: #FFFFFF;
+    -fx-tick-length: 5px;
+    -fx-minor-tick-length: 3px;
+    -fx-border-color: null;
+}
