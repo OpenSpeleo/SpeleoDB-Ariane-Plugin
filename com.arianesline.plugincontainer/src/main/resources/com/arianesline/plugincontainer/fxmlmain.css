@@ -1,0 +1,235 @@
+/*
+To change this license header, choose License Headers in Project Properties.
+To change this template file, choose Tools | Templates
+and open the template in the editor.
+*/
+/* 
+    Created on : 02-Aug-2015, 01:48:28
+    Author     : Sebastien
+*/
+
+.root{
+
+    -fx-font-size: 12;
+    -main-bg-color : #28529c;
+    -secondary-bg-color : #6F99CE;
+    -toolbar-bg-color :#111111;
+    -aggregator-bg-color :#111133;
+    -third-bg-color :#b0a6ea;
+    -light-bg-color:#fafaff;
+    -hover-color: #9999FF;
+    -full-transparent : #00000000;
+    -half-transparent: #00000088;
+
+    -text-neutral-fill:  #c9b0b0;
+    -text-highlight-fill:#eeff00;
+
+    -text-secondary-neutral-fill:  #e9d0d0;
+
+    -fx-font-family:  "System";
+
+}
+
+.text{
+    -fx-font-family: "System";
+}
+
+.bold{
+    -fx-font-weight: bold;
+
+}
+
+.normalweight{
+    -fx-font-weight: normal;
+
+}
+
+.big{
+    -fx-font-family: "System";
+    -fx-font-size: 16;
+}
+.small {
+    -fx-font-family:  "System";
+    -fx-font-size: 10;
+}
+
+.smaller {
+    -fx-font-family:  "System";
+    -fx-font-size: 8;
+}
+.extrasmall {
+    -fx-font-family:  "System";
+    -fx-font-size: 7;
+}
+.toolbar{
+    -fx-font-family:  "System";
+    -fx-background-color: -main-bg-color;
+}
+
+.maintoolbar{
+    -fx-font-family:  "System";
+    -fx-background-color:  -toolbar-bg-color;
+}
+.aggregatorfont{
+    -fx-font-family:  "System";
+    -fx-font-size: 10;
+}
+
+.aggregator{
+    -fx-font-family:  "System";
+    -fx-font-size: 10;
+    -fx-background-color:  -aggregator-bg-color;
+}
+.window-button{
+}
+
+.display-button
+{
+    -fx-font-family:  "System";
+    -fx-font-size: 12;
+}
+
+.display-button-small
+{
+    -fx-font-family: "System";
+    -fx-font-size: 10;
+}
+
+.secondary-pane{
+    -fx-font-family:  "System";
+    -fx-background-color:-third-bg-color;
+    -fx-arc-width: 10;
+    -fx-arc-height: 10;
+}
+
+.data-wizard-pane{
+}
+
+.secondary-pane-title{
+    -fx-font-family: "System";
+    -fx-font-size: 11;
+    -fx-underline: true;
+    -fx-font-weight: bold;
+}
+
+.secondary-pane-header{
+    -fx-font-family:  "System";
+    -fx-font-size: 10;
+}
+
+.toolbar-action-button{
+    -fx-font-family:  "System";
+    -fx-font-size: 11;
+    -fx-font-weight: bold;
+}
+.toolbar-action-splibutton{
+    -fx-font-family: "System";
+    -fx-font-size: 11;
+    -fx-font-weight: bold;
+}
+
+.imagebutton {
+
+    -fx-background-color: -full-transparent ;
+}
+
+.imagebutton:hover {
+    -fx-background-color: -hover-color;
+}
+
+.menuitem {
+    -fx-background-color:  -hover-color;
+}
+
+.searchbox{
+    -fx-font-family:"System";
+    -fx-background-color:  -half-transparent;
+    -fx-text-fill:blanchedalmond;
+}
+
+.locationrec{
+    -fx-font-family:"System";
+    -fx-fill:  -half-transparent;
+    -fx-text-fill:blanchedalmond;
+}
+
+
+.texttoolbar{
+    -fx-font-family: "System";
+    -fx-text-fill: -text-neutral-fill;
+}
+
+.textmenu{
+    -fx-font-family:  "System";
+    -fx-text-fill: #000000;
+}
+
+.texttoolbarsecondary{
+    -fx-font-family: "System";
+    -fx-text-fill:-text-secondary-neutral-fill;
+}
+.profile-draw-pane{
+    -fx-font-family:  "System";
+    -fx-background-color: #000000;
+}
+
+.mapcontrolpane{
+    -fx-font-family:  "System";
+    -fx-background-color: -half-transparent ;
+}
+
+.generalpane{
+    -fx-font-family:  "System";
+    -fx-background-color:  -secondary-bg-color;
+}
+
+.generalscrollpane{
+    -fx-font-family:  "Monospaced";
+    -fx-background:  -light-bg-color;
+}
+.errorlist{
+    -fx-font-family:  "System";
+    -fx-background:  -secondary-bg-color;
+}
+.tooldatafield{
+}
+.textheader{
+    -fx-font-family:  "System";
+    -fx-text-fill:-text-highlight-fill;
+}
+
+.cartotool {
+    -fx-padding: 6 4 6 4 ;
+    -fx-background-color: rgba(0, 0, 0, 0);
+    -fx-text-fill: -text-neutral-fill;
+}
+
+.cartotool:selected{
+    -fx-background-color: -hover-color;
+}
+
+.cartotool:hover{
+    -fx-background-color: -hover-color;
+}
+
+
+
+.cartotoollight{
+    -fx-background-color: rgba(0, 0, 0, 0);
+    -fx-text-fill: -text-neutral-fill;
+}
+
+.cartotoollight:selected{
+    -fx-background-color: #EEEEEE;
+    -fx-text-fill: #111111;
+}
+
+.cartolayer:selected{
+    -fx-background-color: #8888FF;
+}
+
+.propertylabel{
+    -fx-font-family: "System";
+    -fx-font-size: 8;
+}
+

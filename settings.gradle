@@ -3,5 +3,5 @@ rootProject.name = 'speleoDB'
 include 'com.arianesline.ariane.plugin.api'
 include 'com.arianesline.cavelib.api'
 include 'com.arianesline.ariane.plugin.speleoDB'
-
+include 'com.arianesline.plugincontainer'
 
