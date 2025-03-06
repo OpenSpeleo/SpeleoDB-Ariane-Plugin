@@ -22,7 +22,7 @@ subprojects {
     }
 
     group 'arianesline'
-    version '25.1.1'
+    version '25.2.1'
 
     sourceCompatibility = 21
     targetCompatibility = 21
