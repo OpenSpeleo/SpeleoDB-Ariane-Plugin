@@ -16,7 +16,7 @@ public class PluginContainerApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(PluginContainerApplication.class.getResource("plugincontainer-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 320, 240);
+        Scene scene = new Scene(fxmlLoader.load(), 800, 800);
         stage.setTitle("Ariane Plugin Container");
         stage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("log128sepia.png"))));
         stage.setScene(scene);
