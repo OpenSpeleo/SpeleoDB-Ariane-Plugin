@@ -31,10 +31,7 @@ public final class CoreContext {
      */
     public PluginContainerController mainController;
 
-    public CaveSurveyImpl dummyCave;
-
     public CoreContext() {
-        dummyCave = new CaveSurveyImpl();
     }
 
     /**

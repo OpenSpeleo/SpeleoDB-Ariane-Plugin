@@ -68,7 +68,7 @@ public class PluginContainerController implements Initializable {
                             if (command.equals(LOAD.name())) {
                                 Platform.runLater(() -> {
                                     core.mainController.showMessage("LOAD REQUESTED");
-                                    plugin.setSurvey(core.dummyCave);
+                                    plugin.setSurvey(new CaveSurveyImpl());
                                 });
                             } else if (command.equals(SAVE.name())) {
                                 core.mainController.showMessage("SAVE REQUESTED");
@@ -84,10 +84,11 @@ public class PluginContainerController implements Initializable {
 
                         plugin.getCommandProperty().addListener((observableValue, s, command) -> {
                             if (command.equals(LOAD.name())) {
+                                plugin.setSurvey(new CaveSurveyImpl());
+
                                 Platform.runLater(() -> {
                                     core.mainController.showMessage("LOAD REQUESTED");
                                     core.mainController.showMessage(plugin.getSurveyFile().getName());
-                                    plugin.setSurvey(core.dummyCave);
                                 });
                             } else if (command.equals(SAVE.name())) {
                                 core.mainController.showMessage("SAVE REQUESTED");
