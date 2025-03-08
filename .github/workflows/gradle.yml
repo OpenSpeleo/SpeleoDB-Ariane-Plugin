@@ -28,6 +28,11 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
 
+    - name: Change wrapper permissions
+      run: chmod +x ./gradlew
+    - name: Build with Gradle
+      run: ./gradlew build
+      
     # Configure Gradle for optimal use in GitHub Actions, including caching of downloaded dependencies.
     # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
     - name: Setup Gradle
