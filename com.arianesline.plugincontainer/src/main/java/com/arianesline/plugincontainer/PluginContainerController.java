@@ -13,6 +13,10 @@ import javafx.scene.layout.VBox;
 
 import java.net.URL;
 import java.security.cert.PolicyNode;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import java.util.Comparator;
 import java.util.ResourceBundle;
 
@@ -84,10 +88,13 @@ public class PluginContainerController implements Initializable {
 
                         plugin.getCommandProperty().addListener((observableValue, s, command) -> {
                             if (command.equals(LOAD.name())) {
-                                plugin.setSurvey(new CaveSurveyImpl());
-
                                 Platform.runLater(() -> {
                                     core.mainController.showMessage("LOAD REQUESTED");
+                                   var start= LocalDateTime.now();
+                                    while(Duration.between(start,LocalDateTime.now()).toMillis()< 2000){
+//Simulate wait time on Ariane to parse TML
+                                    }
+                                    plugin.setSurvey(new CaveSurveyImpl());
                                     core.mainController.showMessage(plugin.getSurveyFile().getName());
                                 });
                             } else if (command.equals(SAVE.name())) {
