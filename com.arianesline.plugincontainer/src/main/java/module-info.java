@@ -2,6 +2,7 @@ module com.arianesline.plugincontainer {
     uses com.arianesline.ariane.plugin.api.DataServerPlugin;
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.web;
     requires java.prefs;
     requires jakarta.xml.bind;
     requires jakarta.json;
