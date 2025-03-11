@@ -1,5 +1,6 @@
 package com.arianesline.plugincontainer;
 
+import com.arianesline.ariane.plugin.api.DataServerPlugin;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -35,5 +36,6 @@ public class PluginContainerApplication extends Application {
     public void stop() throws Exception {
         super.stop(); //To change body of generated methods, choose Tools | Templates.
         CoreContext.getInstance().shutdownNow();
+        pluginContainer.getDataServerPlugins().forEach(DataServerPlugin::closeUI);
     }
 }
