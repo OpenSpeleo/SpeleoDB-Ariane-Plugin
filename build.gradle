@@ -2,7 +2,7 @@ buildscript {
     repositories {
         mavenCentral()
         maven {
-            url "https://plugins.gradle.org/m2/"
+            url = "https://plugins.gradle.org/m2/"
         }
     }
 }
@@ -14,13 +14,12 @@ plugins {
 
 tasks.register('copyPlugin', Copy) {
 
-    group 'build'
-    description 'Copies the plugins into the main project plugins folder'
+    group = 'build'
+    description = 'Copies the plugins into the main project plugins folder'
 
     doLast {
         println 'Plugins Copied'
     }
-
 
     from "./com.arianesline.ariane.plugin.speleoDB/build/libs"
     into "./com.arianesline.plugincontainer/plugins"
@@ -35,11 +34,13 @@ subprojects {
         modules = [ 'javafx.controls', 'javafx.base' ,'javafx.graphics','javafx.fxml','javafx.swing','javafx.media','javafx.web']
     }
 
-    group 'arianesline'
-    version '25.2.1'
+    group = 'arianesline'
+    version = '25.2.1'
 
-    sourceCompatibility = 21
-    targetCompatibility = 21
+    java {
+        sourceCompatibility = 21
+        targetCompatibility = 21
+    }
 
     repositories {
         mavenCentral()
