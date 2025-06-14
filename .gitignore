@@ -30,3 +30,5 @@ build/
 
 # Mac OS X
 .DS_Store
+
+com.arianesline.plugincontainer/bin/
