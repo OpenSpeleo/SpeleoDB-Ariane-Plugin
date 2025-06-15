@@ -1,17 +1,17 @@
 ## Feature List - SpeleoDB
 
-- [ ] Make the "signup" button to open a browser page to: https://{instance}/signup/
+- [x] Make the "signup" button to open a browser page to: https://{instance}/signup/
 
-- [ ] Allow the user to either specify (Email && Password) || Token
+- [x] Allow the user to either specify (Email && Password) || Token
   - I should have done most of it. If user gives token, verify it works by calling **GET:** `/api/v1/user/auth-token/` (should be done already).
 
-- [ ] Verifying the webpage `https://www.speleodb.org/webview/ariane/` loads well in the `aboutWebView`. Please send me a screenshot.
+- [x] Verifying the webpage `https://www.speleodb.org/webview/ariane/` loads well in the `aboutWebView`. Please send me a screenshot.
 
 - [ ] Project Creation:
-  - [ ] Add a button in the "projects" tab to create a new project.
-  - [ ] Add a form that replicates: https://www.speleodb.org/private/projects/new/ using the API: **POST:** `/api/v1/projects/`
+  - [x] Add a button in the "projects" tab to create a new project.
+  - [x] Add a form that replicates: https://www.speleodb.org/private/projects/new/ using the API: **POST:** `/api/v1/projects/`
   - [ ] Immediately "acquire the lock" on the project (once the project has been created)
-  - [ ] Immediately after the lock => trigger a "refresh" of the project listing so that it appears.
+  - [x] Immediately after the lock => trigger a "refresh" of the project listing so that it appears.
 
 - [ ] Save UX:
   - [ ] Allow the User to save with CTRL + S / CMD + S
@@ -28,8 +28,8 @@
 
   - [ ] If the project has already a lock, mentions that the project can only be opened in "read-only" and who is currently "editing the file" (Name and/or email)
 
-- [ ] "List Projects" UX
-  - [ ] Add a refresh button
+- [x] "List Projects" UX
+  - [x] Add a refresh button
 
 - [ ] Error management. We need clear error messages and invite people to contact me (or you) with a "useful log" to debug any issue.
 

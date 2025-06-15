@@ -46,7 +46,21 @@ subprojects {
         mavenCentral()
     }
     compileJava {
-
+        options.compilerArgs += ['-Xlint:all', '-Xlint:-processing']
+        options.deprecation = true
+        options.warnings = true
+    }
+    
+    test {
+        jvmArgs = [
+            '--enable-native-access=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang=ALL-UNNAMED'
+        ]
+        systemProperty 'java.awt.headless', 'true'
+        systemProperty 'prism.order', 'sw'
+        systemProperty 'prism.text', 't2k'
+        systemProperty 'prism.lcdtext', 'false'
+        systemProperty 'prism.subpixeltext', 'false'
     }
     
 }
