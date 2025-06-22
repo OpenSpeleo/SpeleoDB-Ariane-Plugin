@@ -64,10 +64,6 @@ This feature completes the "Project Creation" requirements from the Feature List
 - Automatic project assignment and UI control enabling/disabling
 - Runs on background thread with UI updates on JavaFX thread
 
-**4. `tryAcquireProjectLock()` - Simple Boolean**
-- Simplified interface for cases requiring only boolean result
-- Perfect for tests and simple conditional logic
-
 #### **🎯 Benefits Achieved**
 
 **Code Reduction**:
@@ -93,11 +89,6 @@ This feature completes the "Project Creation" requirements from the Feature List
 #### **📍 Usage Examples**
 
 ```java
-// Simple boolean check
-if (tryAcquireProjectLock(project, "heartbeat refresh")) {
-    // Lock acquired successfully
-}
-
 // With UI integration
 acquireProjectLockWithUI(project, "project creation",
     () -> showSuccessAnimation("Ready to edit!"),
@@ -114,7 +105,6 @@ if (result.hasError()) {
 #### **🔄 Refactored Components**
 - **Project Creation**: Now uses `acquireProjectLockWithUI()` with success/failure callbacks
 - **Project Opening**: Streamlined with step-by-step logic using `acquireProjectLock()`
-- **Future Heartbeat System**: Ready to use `tryAcquireProjectLock()` for periodic refreshes
 
 This refactoring provides a solid foundation for the upcoming heartbeat system implementation and eliminates the "reinventing the wheel" problem you identified.
 
