@@ -1,28 +1,29 @@
 package com.arianesline.plugincontainer;
 
-import com.arianesline.ariane.plugin.api.Plugin;
-import com.arianesline.ariane.plugin.api.PluginInterface;
-import javafx.application.Platform;
-import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
-import javafx.scene.control.*;
-import javafx.scene.image.ImageView;
-import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
-
-import java.net.URL;
-import java.security.cert.PolicyNode;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalUnit;
-import java.util.Comparator;
-import java.util.ResourceBundle;
-
 import static com.arianesline.ariane.plugin.api.DataServerCommands.LOAD;
 import static com.arianesline.ariane.plugin.api.DataServerCommands.SAVE;
 import static com.arianesline.plugincontainer.PluginContainerApplication.pluginContainer;
+
+import java.net.URL;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.ResourceBundle;
+
+import com.arianesline.ariane.plugin.api.Plugin;
+import com.arianesline.ariane.plugin.api.PluginInterface;
+
+import javafx.application.Platform;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.ListView;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.Tooltip;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
 
 public class PluginContainerController implements Initializable {
 
@@ -32,6 +33,13 @@ public class PluginContainerController implements Initializable {
     public AnchorPane mainAnchor;
     public ListView<String> mainListView;
     public HBox mainHBox;
+
+    /**
+     * Default constructor for PluginContainerController.
+     */
+    public PluginContainerController() {
+        // Default constructor
+    }
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {

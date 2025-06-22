@@ -1,13 +1,22 @@
 package com.arianesline.plugincontainer;
 
-import com.arianesline.cavelib.api.CaveSurveyInterface;
-import com.arianesline.cavelib.api.SurveyDataInterface;
-import javafx.scene.paint.Color;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 
+import com.arianesline.cavelib.api.CaveSurveyInterface;
+import com.arianesline.cavelib.api.SurveyDataInterface;
+
+import javafx.scene.paint.Color;
+
 public class CaveSurveyImpl implements CaveSurveyInterface {
+    
+    /**
+     * Default constructor for CaveSurveyImpl.
+     */
+    public CaveSurveyImpl() {
+        // Default constructor
+    }
+
     @Override
     public String getExtraData() {
         return "";

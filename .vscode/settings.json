@@ -1,10 +1,20 @@
 {
     "java.configuration.updateBuildConfiguration": "automatic",
-    "java.compile.nullAnalysis.mode": "disabled",
-    "java.configuration.runtimes": [],
+    "java.compile.nullAnalysis.mode": "automatic",
+    "java.eclipse.downloadSources": true,
+    "java.maven.downloadSources": true,
+    "java.gradle.buildServer.enabled": "on",
     "java.import.gradle.enabled": true,
     "java.import.gradle.wrapper.enabled": true,
+    "java.sources.organizeImports.starThreshold": 99,
+    "java.sources.organizeImports.staticStarThreshold": 99,
+    "java.codeGeneration.hashCodeEquals.useJava7Objects": true,
+    "java.codeGeneration.useBlocks": true,
+    "java.saveActions.organizeImports": true,
     "java.project.referencedLibraries": [
-        "lib/**/*.jar"
-    ]
+        "lib/**/*.jar",
+        "**/lib/*.jar",
+        "**/build/libs/*.jar",
+    ],
+    "java.clean.workspace": false
 }

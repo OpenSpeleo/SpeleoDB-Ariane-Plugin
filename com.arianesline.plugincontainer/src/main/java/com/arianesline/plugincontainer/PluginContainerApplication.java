@@ -1,18 +1,26 @@
 package com.arianesline.plugincontainer;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import com.arianesline.ariane.plugin.api.DataServerPlugin;
+
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
-import java.io.IOException;
-import java.util.Objects;
-
 public class PluginContainerApplication extends Application {
 
     public static PluginContainer pluginContainer = new PluginContainer();
+    
+    /**
+     * Default constructor for PluginContainerApplication.
+     */
+    public PluginContainerApplication() {
+        super();
+    }
 
     @Override
     public void start(Stage stage) throws IOException {

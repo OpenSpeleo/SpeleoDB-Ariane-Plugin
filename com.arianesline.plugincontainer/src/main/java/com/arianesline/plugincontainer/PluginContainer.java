@@ -1,14 +1,8 @@
 package com.arianesline.plugincontainer;
 
-import com.arianesline.ariane.plugin.api.*;
-
-import javafx.application.Platform;
-import javafx.concurrent.Task;
-
 import java.lang.module.Configuration;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
-
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,12 +10,24 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.arianesline.ariane.plugin.api.DataServerPlugin;
+
+import javafx.application.Platform;
+import javafx.concurrent.Task;
+
 
 public class PluginContainer {
 
     private final CoreContext core = CoreContext.getInstance();
 
     private final List<DataServerPlugin> dataServerPlugins = new ArrayList<>();
+
+    /**
+     * Default constructor for PluginContainer.
+     */
+    public PluginContainer() {
+        // Default constructor
+    }
 
     public List<DataServerPlugin> getDataServerPlugins() {
         return dataServerPlugins;
@@ -39,6 +45,13 @@ public class PluginContainer {
     }
 
     public class PlugingLoadTask extends Task<Void> {
+
+        /**
+         * Default constructor for PlugingLoadTask.
+         */
+        public PlugingLoadTask() {
+            super();
+        }
 
         ModuleLayer createPluginLayer(String dir) {
             ModuleFinder finder = ModuleFinder.of(Paths.get(dir));

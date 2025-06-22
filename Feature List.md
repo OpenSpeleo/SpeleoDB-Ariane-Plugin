@@ -7,10 +7,10 @@
 
 - [x] Verifying the webpage `https://www.speleodb.org/webview/ariane/` loads well in the `aboutWebView`. Please send me a screenshot.
 
-- [ ] Project Creation:
+- [x] Project Creation:
   - [x] Add a button in the "projects" tab to create a new project.
   - [x] Add a form that replicates: https://www.speleodb.org/private/projects/new/ using the API: **POST:** `/api/v1/projects/`
-  - [ ] Immediately "acquire the lock" on the project (once the project has been created)
+  - [x] Immediately "acquire the lock" on the project (once the project has been created)
   - [x] Immediately after the lock => trigger a "refresh" of the project listing so that it appears.
 
 - [ ] Save UX:
