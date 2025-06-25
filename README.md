@@ -1,216 +1,60 @@
-# SpeleoDB Plugin Monorepo
+## Feature List - SpeleoDB
 
-This repository contains the SpeleoDB plugin ecosystem for cave surveying applications.
+- [x] Make the "signup" button to open a browser page to: https://{instance}/signup/
 
-## Recent Updates
+- [x] Allow the user to either specify (Email && Password) || Token
+  - I should have done most of it. If user gives token, verify it works by calling **GET:** `/api/v1/user/auth-token/` (should be done already).
 
-### ✅ Auto-Lock Acquisition on Project Creation (COMPLETED)
+- [x] Verifying the webpage `https://www.speleodb.org/webview/ariane/` loads well in the `aboutWebView`. Please send me a screenshot.
 
-**Feature**: When creating a new project through the SpeleoDB plugin, the system now automatically:
+- [x] Project Creation:
+  - [x] Add a button in the "projects" tab to create a new project.
+  - [x] Add a form that replicates: https://www.speleodb.org/private/projects/new/ using the API: **POST:** `/api/v1/projects/`
+  - [x] Immediately "acquire the lock" on the project (once the project has been created)
+  - [x] Immediately after the lock => trigger a "refresh" of the project listing so that it appears.
 
-1. **Creates the project** via the SpeleoDB API
-2. **Immediately acquires the lock** on the newly created project  
-3. **Creates an empty TML file** as a starting point for survey data
-4. **Loads the project** into the application for immediate editing
-5. **Enables all editing actions** (upload, unlock buttons) since the lock is acquired
-6. **Refreshes the project list** to show the new project with lock status
+- [ ] Save UX:
+  - [ ] Allow the User to save with CTRL + S / CMD + S
+  - [ ] Show a pop-up / modal asking for a commit message and boom (the modal should include a cancel button).
 
-**Benefits**:
-- **Seamless workflow**: Users can immediately start working on new projects
-- **No manual lock acquisition**: Eliminates the extra step of manually acquiring locks
-- **Ready-to-edit state**: New projects open directly in edit mode with all tools available
-- **Immediate feedback**: UI instantly reflects the locked/editable state
+- [ ] "Open Project" UX
+  - [ ] On open, ask the user if they want "read-only or "edition".
 
-**Technical Implementation**:
-- Enhanced `onCreateNewProject()` method in `SpeleoDBController`
-- Added `createEmptyTmlFile()` utility method for generating starter TML files
-- Integrated with existing lock management and UI state systems
-- Comprehensive error handling for lock acquisition failures
-- Maintains backward compatibility with existing project workflows
+    - [ ] If "Edition" => Acquire the lock **then** download the project (not the reverse, classic mutex stuff).
 
-**Error Handling**:
-- If lock acquisition fails, the project is still created successfully
-- Users receive clear feedback about lock status
-- Fallback behavior ensures no data loss or workflow interruption
+    - [ ] If "Read-only" => Don't acquire the lock and prevent modifications
 
-This feature completes the "Project Creation" requirements from the Feature List and significantly improves the user experience for new project workflows.
+      - [ ] If detecting changes tried to be made => asking the user if they want to open the project in "edition mode", if yes probably safer to acquire the lock & re-download the project (in case someone else modified the project in your back).
 
-### ✅ Centralized Lock Management System (COMPLETED)
+  - [ ] If the project has already a lock, mentions that the project can only be opened in "read-only" and who is currently "editing the file" (Name and/or email)
 
-**Problem Solved**: Lock acquisition logic was duplicated across multiple locations in the codebase:
-- Project creation (auto-lock feature)
-- Project opening (with UI updates)  
-- Test methods (with retry logic)
-- Manual lock operations
+- [x] "List Projects" UX
+  - [x] Add a refresh button
 
-**Solution Implemented**: Created a comprehensive centralized lock management system with three specialized methods:
+- [ ] Error management. We need clear error messages and invite people to contact me (or you) with a "useful log" to debug any issue.
 
-#### **🔧 Core Components**
+- [ ] Adding a periodic 5min (sounds reasonable to me) "re-acquire the mutex" background task while editing a file (if online). This allows to create a "heartbeat" of when was the user "last seen editing the file".
+  - [ ] Make it "okay to fail" if the user is disconnected from network / network busy. Only notify the user **on first failure** if the server is sending an error.
 
-**1. `LockResult` Class**
-- Immutable result object with detailed lock operation information
-- Contains: success status, descriptive message, project reference, error details
-- Factory methods: `success()`, `failure()`, `error()`
+## Feature List - In general
 
-**2. `acquireProjectLock()` - Core Logic**
-- Centralized lock acquisition with comprehensive error handling
-- Automatic read-only permission checking
-- Consistent logging with emoji indicators (🔄 🔒 ✓ ⚠️ ❌)
-- Context-aware messaging for different operation types
+- [ ] Add a SpeleoDB_ID field to the TML/TMLU - we might do some stuff with it later (like recovery of project, where to upload it).
+  - [ ] We will at some point add some "project fork" logic. I don't yet have a good idea on how to manage this.
 
-**3. `acquireProjectLockWithUI()` - UI Integration**
-- Handles lock acquisition with automatic UI state management
-- Success/failure callbacks for custom behavior
-- Automatic project assignment and UI control enabling/disabling
-- Runs on background thread with UI updates on JavaFX thread
+- [ ] Save every DMP "section" inside the TML as an independant DMP file (check hashes to prevent duplicates).
+  - [ ] I recommend a mix of "timestamp and filehash" for the name something like `mnemo_{section_time.strftime("%Y-%m-%d_%Hh%M")_{sha1hash[:8]}}` (only the first 8 chars of the hash to prevent collisions).
+  - [ ] Potentially you can use the file hash (extracted with a regex) to "match" the file and avoid duplicates instead of recomputing them. Though it's extremely cheap for such small files.
 
-#### **🎯 Benefits Achieved**
+## Feature List - I'm not sure if/how we should do that
 
-**Code Reduction**:
-- ✅ Eliminated ~80 lines of duplicated lock logic
-- ✅ Reduced from 4 different patterns to 1 centralized system
-- ✅ Consistent error handling and logging across all lock operations
+- [ ] We need a way to allow users to "lock the project" for a bunch of days / weekends / weeks. Mostly if the user is working offline.
 
-**Improved Maintainability**:
-- ✅ Single source of truth for lock acquisition behavior
-- ✅ Easier to modify lock logic (change once, affects all usages)
-- ✅ Standardized error messages and logging format
+- [ ] What if we start working "online" download the project and then get offline (plane ? remote ?)
 
-**Enhanced Reliability**:
-- ✅ Consistent permission checking (read-only projects)
-- ✅ Proper exception handling with detailed error reporting
-- ✅ Thread-safe UI updates with Platform.runLater()
+- [ ] Shall we do a sort of "offline queue" for the commits that gets cleared next time Ariane gets online ?
 
-**Better User Experience**:
-- ✅ Consistent feedback messages across all lock operations
-- ✅ Clear visual indicators (emoji) for different operation states
-- ✅ Context-aware messages ("project creation", "project opening", etc.)
+- [ ] Shall we ask the user for save & release the mutex when Ariane is closing ? I really want to avoid a situation where people acquire locks all over the place and never release them.
 
-#### **📍 Usage Examples**
+- [ ] If `CheckEqualOrUpdateSpeleoDB_ID` (previously `checkFileId`) doesn't "match", maybe we should issue a warning to the user and asking for confirmation. That would prevent mistakes. The main reason I see this happening would be "a project fork" essentially (or a mistake).
 
-```java
-// With UI integration
-acquireProjectLockWithUI(project, "project creation",
-    () -> showSuccessAnimation("Ready to edit!"),
-    () -> showWarning("Read-only mode")
-);
-
-// Full control with detailed result
-LockResult result = acquireProjectLock(project, "manual operation");
-if (result.hasError()) {
-    handleLockError(result.getError());
-}
-```
-
-#### **🔄 Refactored Components**
-- **Project Creation**: Now uses `acquireProjectLockWithUI()` with success/failure callbacks
-- **Project Opening**: Streamlined with step-by-step logic using `acquireProjectLock()`
-
-This refactoring provides a solid foundation for the upcoming heartbeat system implementation and eliminates the "reinventing the wheel" problem you identified.
-
-This is a gradle dev environment for the **SpeleoDB Ariane Plugin**
-
-The **com.arianesline.plugincontainer** application will load the plugin located in its *plugin* folder in a dummy environment and ease the debugging process
-
-### ✅ UI Freeze Fix - Project Creation Performance (COMPLETED)
-
-**Problem Identified**: The application was freezing for 2-3 seconds after project creation during the lock acquisition phase.
-
-**Root Cause**: Heavy operations (TML file creation, survey loading, SpeleoDB ID updates) were being executed on the JavaFX UI thread via `Platform.runLater()`, blocking the user interface.
-
-**Solution Implemented**: 
-- **Moved heavy operations back to background thread** - File I/O and survey operations now run asynchronously
-- **Separated UI updates from heavy operations** - Only lightweight UI state changes run on JavaFX thread
-- **Maintained proper threading model** - Background work → UI updates pattern
-
-#### **🔧 Technical Changes**
-
-**Before** (Causing UI Freeze):
-```java
-Platform.runLater(() -> {
-    // ❌ Heavy operations on UI thread
-    createEmptyTmlFile(projectId, projectName);     // File I/O
-    parentPlugin.loadSurvey(emptyTmlFile.toFile()); // Survey loading
-    checkAndUpdateSpeleoDBId(createdProject);       // API calls
-    showSuccessAnimation("Project created!");       // UI update
-});
-```
-
-**After** (Smooth Performance):
-```java
-parentPlugin.executorService.execute(() -> {
-    // ✅ Heavy operations on background thread
-    createEmptyTmlFile(projectId, projectName);     // File I/O
-    parentPlugin.loadSurvey(emptyTmlFile.toFile()); // Survey loading
-    checkAndUpdateSpeleoDBId(createdProject);       // API calls
-    
-    Platform.runLater(() -> {
-        // ✅ Only lightweight UI updates on JavaFX thread
-        showSuccessAnimation("Project created!");
-        updateUIControls();
-    });
-});
-```
-
-#### **🚀 Performance Impact**
-
-**Before Fix**:
-- ❌ **2-3 second UI freeze** during project creation
-- ❌ Unresponsive interface during lock acquisition
-- ❌ Poor user experience with no feedback
-
-**After Fix**:
-- ✅ **Immediate UI responsiveness** - no freezing
-- ✅ Background operations don't block interface
-- ✅ Smooth user experience with proper feedback
-
-#### **🎯 Threading Best Practices Applied**
-
-1. **Heavy Operations** → Background thread (`executorService`)
-2. **UI Updates** → JavaFX thread (`Platform.runLater()`)
-3. **Proper Error Handling** → Exceptions caught and UI updated appropriately
-4. **User Feedback** → Progress indicators and status messages remain responsive
-
-This fix ensures the application remains responsive during all project creation operations while maintaining the same functionality and user experience quality.
-
-### ✅ Template-Based TML File Creation (COMPLETED)
-
-**Improvement**: Updated new project creation to use a proper TML template file instead of generating XML content programmatically.
-
-**Benefits**:
-- ✅ **Proper TML structure** - Uses real TML file format (ZIP archive) instead of XML text
-- ✅ **Consistent with downloads** - Same binary file handling as downloaded projects
-- ✅ **Maintainable template** - Template can be updated independently of code
-- ✅ **Reliable format** - Eliminates XML generation errors and encoding issues
-
-#### **🔧 Technical Implementation**
-
-**Before** (XML Generation):
-```java
-// ❌ Generated XML text (not proper TML format)
-String emptyTmlContent = String.format("""
-    <?xml version="1.0" encoding="UTF-8"?>
-    <tml version="1.0">
-        <project name="%s">
-            <description>New project created in SpeleoDB</description>
-            <speleodb_id>%s</speleodb_id>
-        </project>
-    </tml>
-    """, projectName, projectId);
-Files.write(tmlFilePath, emptyTmlContent.getBytes());
-```
-
-**After** (Template Copy):
-```java
-// ✅ Copy proper TML template file (ZIP format)
-try (var templateStream = getClass().getResourceAsStream("/tml/empty_project.tml")) {
-    Files.copy(templateStream, tmlFilePath, StandardCopyOption.REPLACE_EXISTING);
-}
-```
-
-#### **📁 Template File Location**
-- **Path**: `org.speleodb.ariane.plugin.speleodb/src/main/resources/tml/empty_project.tml`
-- **Format**: Binary TML file (ZIP archive) - same as downloaded projects
-- **Usage**: Automatically copied for each new project creation
-
-This ensures new projects start with a proper, well-formed TML file structure that's identical to what users would get from downloading an existing project.
+- [ ] Provide a list of the different revisions of the projects, and allow the user to download in READ_ONLY any version of the project.
