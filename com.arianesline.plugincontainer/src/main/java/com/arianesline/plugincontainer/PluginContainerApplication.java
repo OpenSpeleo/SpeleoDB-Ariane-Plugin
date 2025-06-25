@@ -5,6 +5,7 @@ import java.util.Objects;
 
 import com.arianesline.ariane.plugin.api.DataServerPlugin;
 
+import com.arianesline.ariane.plugin.api.Plugin;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -30,6 +31,7 @@ public class PluginContainerApplication extends Application {
         stage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("log128sepia.png"))));
         stage.setScene(scene);
         stage.show();
+        Plugin.containerVersion.append("25.2.1");
         pluginContainer.loadPlugins();
     }
 
