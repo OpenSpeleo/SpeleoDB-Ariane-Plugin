@@ -209,7 +209,7 @@ try (var templateStream = getClass().getResourceAsStream("/tml/empty_project.tml
 ```
 
 #### **📁 Template File Location**
-- **Path**: `com.arianesline.ariane.plugin.speleoDB/src/main/resources/tml/empty_project.tml`
+- **Path**: `org.speleodb.ariane.plugin.speleodb/src/main/resources/tml/empty_project.tml`
 - **Format**: Binary TML file (ZIP archive) - same as downloaded projects
 - **Usage**: Automatically copied for each new project creation
 
