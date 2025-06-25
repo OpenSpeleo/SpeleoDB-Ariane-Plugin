@@ -1,9 +1,9 @@
-[submodule "com.arianesline.ariane.plugin.speleoDB"]
-	path = com.arianesline.ariane.plugin.speleoDB
-	url = git@github.com:OpenSpeleo/com.arianesline.ariane.plugin.speleoDB.git
 [submodule "com.arianesline.ariane.plugin.api"]
 	path = com.arianesline.ariane.plugin.api
 	url = git@github.com:Ariane-s-Line/com.arianesline.ariane.plugin.api.git
 [submodule "com.arianesline.cavelib.api"]
 	path = com.arianesline.cavelib.api
 	url = git@github.com:Ariane-s-Line/com.arianesline.cavelib.api.git
+[submodule "org.speleodb.ariane.plugin.speleodb_ariane_plugin"]
+	path = org.speleodb.ariane.plugin.speleodb_ariane_plugin
+	url = git@github.com:OpenSpeleo/org.speleodb.ariane.plugin.speleodb_ariane_plugin.git
