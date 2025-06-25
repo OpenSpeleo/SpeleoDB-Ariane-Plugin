@@ -16,8 +16,6 @@ tasks.register('copyPlugin', Copy) {
 
     group = 'build'
     description = 'Copies the plugins into the main project plugins folder'
-    
-    dependsOn ':org.speleodb.ariane.plugin.speleodb:build'
 
     doFirst {
         // Delete all files in the destination directory before copying
