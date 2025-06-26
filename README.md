@@ -13,20 +13,14 @@
   - [x] Immediately "acquire the lock" on the project (once the project has been created)
   - [x] Immediately after the lock => trigger a "refresh" of the project listing so that it appears.
 
-- [ ] Save UX:
-  - [ ] Allow the User to save with CTRL + S / CMD + S
-  - [ ] Show a pop-up / modal asking for a commit message and boom (the modal should include a cancel button).
+- [x] Save UX:
+  - [x] Allow the User to save with CTRL + S / CMD + S
+  - [x] Show a pop-up / modal asking for a commit message and boom (the modal should include a cancel button).
 
-- [ ] "Open Project" UX
-  - [ ] On open, ask the user if they want "read-only or "edition".
+- [x] "Open Project" UX
+  - [x] Immediately acquire the lock if possible
 
-    - [ ] If "Edition" => Acquire the lock **then** download the project (not the reverse, classic mutex stuff).
-
-    - [ ] If "Read-only" => Don't acquire the lock and prevent modifications
-
-      - [ ] If detecting changes tried to be made => asking the user if they want to open the project in "edition mode", if yes probably safer to acquire the lock & re-download the project (in case someone else modified the project in your back).
-
-  - [ ] If the project has already a lock, mentions that the project can only be opened in "read-only" and who is currently "editing the file" (Name and/or email)
+  - [x] If the project has already a lock, mentions that the project can only be opened in "read-only" and who is currently "editing the file" (Name and/or email)
 
 - [x] "List Projects" UX
   - [x] Add a refresh button

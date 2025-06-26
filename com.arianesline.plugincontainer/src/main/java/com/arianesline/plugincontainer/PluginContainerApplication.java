@@ -4,8 +4,8 @@ import java.io.IOException;
 import java.util.Objects;
 
 import com.arianesline.ariane.plugin.api.DataServerPlugin;
-
 import com.arianesline.ariane.plugin.api.Plugin;
+
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -13,6 +13,8 @@ import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 public class PluginContainerApplication extends Application {
+
+    private static final String ARIANE_VERSION = "25.2.2";
 
     public static PluginContainer pluginContainer = new PluginContainer();
     
@@ -31,7 +33,7 @@ public class PluginContainerApplication extends Application {
         stage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("log128sepia.png"))));
         stage.setScene(scene);
         stage.show();
-        Plugin.containerVersion.append("25.2.1");
+        Plugin.containerVersion.append(ARIANE_VERSION);
         pluginContainer.loadPlugins();
     }
 
