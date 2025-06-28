@@ -1,54 +1,94 @@
-## Feature List - SpeleoDB
+# Ariane-SpeleoDB-Releases
 
-- [x] Make the "signup" button to open a browser page to: https://{instance}/signup/
+> [!CAUTION]  
+> This release is experimental - there will probably be issues -
+> please [open an issue](https://github.com/OpenSpeleo/SpeleoDB-Ariane-Plugin/issues/new) or send me a message if you find any abnormal behavior or have any question.
 
-- [x] Allow the user to either specify (Email && Password) || Token
-  - I should have done most of it. If user gives token, verify it works by calling **GET:** `/api/v1/user/auth-token/` (should be done already).
+## Installation Instructions:
 
-- [x] Verifying the webpage `https://www.speleodb.org/webview/ariane/` loads well in the `aboutWebView`. Please send me a screenshot.
+### 1. Update Ariane
 
-- [x] Project Creation:
-  - [x] Add a button in the "projects" tab to create a new project.
-  - [x] Add a form that replicates: https://www.speleodb.org/private/projects/new/ using the API: **POST:** `/api/v1/projects/`
-  - [x] Immediately "acquire the lock" on the project (once the project has been created)
-  - [x] Immediately after the lock => trigger a "refresh" of the project listing so that it appears.
+Download and install the latest release of Ariane: https://github.com/Ariane-s-Line/Ariane-Release/releases
 
-- [x] Save UX:
-  - [x] Allow the User to save with CTRL + S / CMD + S
-  - [x] Show a pop-up / modal asking for a commit message and boom (the modal should include a cancel button).
+> [!NOTE]  
+> You need at a **bare minimum** Ariane version `25.2.1` or above.
 
-- [x] "Open Project" UX
-  - [x] Immediately acquire the lock if possible
+### 2. Download the SpeleoDB Plugin
 
-  - [x] If the project has already a lock, mentions that the project can only be opened in "read-only" and who is currently "editing the file" (Name and/or email)
+Download the latest version of the SpeleoDB Ariane Plugin: [OpenSpeleo/SpeleoDB-Ariane-Plugin/releases](https://github.com/OpenSpeleo/SpeleoDB-Ariane-Plugin/releases).
 
-- [x] "List Projects" UX
-  - [x] Add a refresh button
+> [!NOTE]  
+> You want the file in `.jar` - ignore the `.zip` and `.tar.gz`.
 
-- [ ] Error management. We need clear error messages and invite people to contact me (or you) with a "useful log" to debug any issue.
+![Screenshot 2025-06-21 at 12 01 03](assets/tutorial1.png)
 
-- [ ] Adding a periodic 5min (sounds reasonable to me) "re-acquire the mutex" background task while editing a file (if online). This allows to create a "heartbeat" of when was the user "last seen editing the file".
-  - [ ] Make it "okay to fail" if the user is disconnected from network / network busy. Only notify the user **on first failure** if the server is sending an error.
+### 3. Install the SpeleoDB plugin in Ariane
 
-## Feature List - In general
+1. Launch Ariane
 
-- [ ] Add a SpeleoDB_ID field to the TML/TMLU - we might do some stuff with it later (like recovery of project, where to upload it).
-  - [ ] We will at some point add some "project fork" logic. I don't yet have a good idea on how to manage this.
+2. Add a new plugin to Ariane
 
-- [ ] Save every DMP "section" inside the TML as an independant DMP file (check hashes to prevent duplicates).
-  - [ ] I recommend a mix of "timestamp and filehash" for the name something like `mnemo_{section_time.strftime("%Y-%m-%d_%Hh%M")_{sha1hash[:8]}}` (only the first 8 chars of the hash to prevent collisions).
-  - [ ] Potentially you can use the file hash (extracted with a regex) to "match" the file and avoid duplicates instead of recomputing them. Though it's extremely cheap for such small files.
+Click the `I` => plugins => add plugin
 
-## Feature List - I'm not sure if/how we should do that
+![Screenshot 2025-06-21 at 12 05 19](assets/tutorial2.png)
 
-- [ ] We need a way to allow users to "lock the project" for a bunch of days / weekends / weeks. Mostly if the user is working offline.
+1. Select the `.jar` file we just downloaded
+   
+![Screenshot 2025-06-21 at 12 06 59](assets/tutorial3.png)
 
-- [ ] What if we start working "online" download the project and then get offline (plane ? remote ?)
+1. Quit & Restart Ariane
 
-- [ ] Shall we do a sort of "offline queue" for the commits that gets cleared next time Ariane gets online ?
+## Usage Instructions:
 
-- [ ] Shall we ask the user for save & release the mutex when Ariane is closing ? I really want to avoid a situation where people acquire locks all over the place and never release them.
+Congrats 🎉 🎉 🎉  ! You should now see a `SpeleoDB` tab on the left.
 
-- [ ] If `CheckEqualOrUpdateSpeleoDB_ID` (previously `checkFileId`) doesn't "match", maybe we should issue a warning to the user and asking for confirmation. That would prevent mistakes. The main reason I see this happening would be "a project fork" essentially (or a mistake).
+![Screenshot 2025-06-21 at 12 07 37](assets/tutorial4.png)
 
-- [ ] Provide a list of the different revisions of the projects, and allow the user to download in READ_ONLY any version of the project.
+1. Open the `SpeleoDB` tab - should look like this (internet connection required from that point)
+   
+![Screenshot 2025-06-21 at 12 08 26](assets/tutorial5.png)
+
+2. Let's connect
+
+Let's click on the `Connection` pane - it should look like this
+
+![Screenshot 2025-06-21 at 12 09 49](assets/tutorial6.png)
+
+At this point you have two choices:
+
+  1. Email & Password
+  2. Enter your authentication token
+
+If you decide to use the token, open this link: [https://www.speleodb.org/private/auth-token/](https://www.speleodb.org/private/auth-token/)
+
+> [!CAUTION]  
+> Treat this `token` as your password ! It will give complete access to your account if you share this "token".<br>
+> **In case you need to change it => click on `Refresh Token` (the red button).**
+
+![Screenshot 2025-06-21 at 12 13 13](assets/tutorial7.png)
+
+Let's copy/paste the token in the app and click `CONNECT`
+
+# 3. Opening a project
+
+Once connected you should see appearing the list of project you have access to
+
+![Screenshot 2025-06-21 at 12 15 31](assets/tutorial8.png)
+
+Click any of the projects. This will download and load the project you want.
+
+![Screenshot 2025-06-21 at 12 33 07](assets/tutorial9.png)
+
+In the background, Ariane acquires the project lock for you (if you have write access and nobody is currently modifying the file).
+
+From that point you can:
+
+- Modify the project and upload a new revision by clicking `Save Project`
+
+![Screenshot 2025-06-21 at 12 34 41](assets/tutorial10.png)
+
+- Change project by going back to the `Projects` tab
+
+- Unlock the project and quit Ariane
+
+Hope you have fun ! Feel free to give me any feedback
