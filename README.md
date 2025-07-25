@@ -4,39 +4,12 @@
 > This release is experimental - there will probably be issues -
 > please [open an issue](https://github.com/OpenSpeleo/SpeleoDB-Ariane-Plugin/issues/new) or send me a message if you find any abnormal behavior or have any question.
 
-## Installation Instructions:
+## Installation Instructions - Update Ariane:
 
-### 1. Update Ariane
+> [!NOTE]  
+> You need at a **bare minimum** Ariane version `25.2.2` or above.
 
 Download and install the latest release of Ariane: https://github.com/Ariane-s-Line/Ariane-Release/releases
-
-> [!NOTE]  
-> You need at a **bare minimum** Ariane version `25.2.1` or above.
-
-### 2. Download the SpeleoDB Plugin
-
-Download the latest version of the SpeleoDB Ariane Plugin: [OpenSpeleo/SpeleoDB-Ariane-Plugin/releases](https://github.com/OpenSpeleo/SpeleoDB-Ariane-Plugin/releases).
-
-> [!NOTE]  
-> You want the file in `.jar` - ignore the `.zip` and `.tar.gz`.
-
-![Screenshot 2025-06-21 at 12 01 03](assets/tutorial1.png)
-
-### 3. Install the SpeleoDB plugin in Ariane
-
-1. Launch Ariane
-
-2. Add a new plugin to Ariane
-
-Click the `I` => plugins => add plugin
-
-![Screenshot 2025-06-21 at 12 05 19](assets/tutorial2.png)
-
-1. Select the `.jar` file we just downloaded
-   
-![Screenshot 2025-06-21 at 12 06 59](assets/tutorial3.png)
-
-1. Quit & Restart Ariane
 
 ## Usage Instructions:
 
