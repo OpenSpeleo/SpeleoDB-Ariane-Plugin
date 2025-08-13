@@ -27,6 +27,12 @@
 
 - [ ] Error management. We need clear error messages and invite people to contact me (or you) with a "useful log" to debug any issue.
 
+- [x] Popup/Dialog stability
+  - [x] Always create fresh dialogs (no instance reuse) to avoid persisting window state
+  - [x] All dialogs are non-resizable and WINDOW_MODAL with an owner window
+  - [x] Dialog sizes are capped (both width and height) to prevent accidental fullscreen
+  - [x] Information/update dialogs and New Project dialog updated accordingly
+
 - [ ] Adding a periodic 5min (sounds reasonable to me) "re-acquire the mutex" background task while editing a file (if online). This allows to create a "heartbeat" of when was the user "last seen editing the file".
   - [ ] Make it "okay to fail" if the user is disconnected from network / network busy. Only notify the user **on first failure** if the server is sending an error.
 
