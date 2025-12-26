@@ -44,6 +44,16 @@ subprojects {
     apply plugin: 'java-library'
     apply plugin: 'org.openjfx.javafxplugin'
 
+    // Ensure Photoshop files are never packaged into any build artifacts
+    // Keeps *.psd in the repo but excludes them from resources, jars, and distributions
+    sourceSets {
+        main {
+            resources {
+                exclude '**/*.psd'
+            }
+        }
+    }
+
     javafx {
         version = "23.0.1"
         modules = [ 'javafx.controls', 'javafx.base' ,'javafx.graphics','javafx.fxml','javafx.swing','javafx.media','javafx.web']
