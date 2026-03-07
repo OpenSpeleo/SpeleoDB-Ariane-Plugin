@@ -1,14 +1,5 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        maven {
-            url = "https://plugins.gradle.org/m2/"
-        }
-    }
-}
-
 plugins {
-    id "org.javamodularity.moduleplugin" version "1.8.15"
+    id "org.javamodularity.moduleplugin" version "2.0.0"
     id 'org.openjfx.javafxplugin' version "0.1.0"
 }
 
@@ -34,10 +25,10 @@ tasks.register('copyPlugin', Copy) {
 
 }
 
-task copyAndRun(type: GradleBuild) {
+tasks.register('copyAndRun', GradleBuild) {
     group = 'application'
     description = 'Copies the plugins and runs the plugin container application'
-    
+
     tasks = ['copyPlugin', ':com.arianesline.plugincontainer:run']
 }
 subprojects {

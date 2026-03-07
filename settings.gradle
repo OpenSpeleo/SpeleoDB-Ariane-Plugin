@@ -5,3 +5,65 @@ include 'com.arianesline.cavelib.api'
 include 'org.speleodb.ariane.plugin.speleodb'
 include 'com.arianesline.plugincontainer'
 
+// ---------------------------------------------------------------------------
+// Post-build cleanup: reset TEST_MODE and VERSION in SpeleoDBConstants.java
+// Replaces the deprecated gradle.buildFinished callback (removed in Gradle 9)
+// ---------------------------------------------------------------------------
+import org.gradle.api.flow.FlowAction
+import org.gradle.api.flow.FlowParameters
+import org.gradle.api.flow.FlowProviders
+import org.gradle.api.flow.FlowScope
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+
+abstract class ResetConstantsAction implements FlowAction<ResetConstantsAction.Parameters> {
+    interface Parameters extends FlowParameters {
+        @Input
+        Property<File> getConstantsFile()
+    }
+
+    @Override
+    void execute(Parameters parameters) {
+        def constantsFile = parameters.constantsFile.get()
+        if (!constantsFile.exists()) return
+
+        def content = constantsFile.text
+        def hasChanges = false
+
+        if (content.contains('public static final boolean TEST_MODE = true;')) {
+            println "Build finished - ensuring test mode is disabled..."
+            content = content.replaceFirst(
+                'public static final boolean TEST_MODE = true;',
+                'public static final boolean TEST_MODE = false;'
+            )
+            hasChanges = true
+            println "Test mode DISABLED after build completion"
+        }
+
+        def versionPattern = /(?s)(SpeleoDB Plugin Version.*?\n\s*\*\/\s*\n)(\s*public static final String VERSION = )"[^"]*";/
+        if (content =~ versionPattern) {
+            println "Build finished - ensuring version is reset to null..."
+            content = content.replaceFirst(
+                versionPattern,
+                '$1$2null;'
+            )
+            hasChanges = true
+            println "Version RESET to null after build completion"
+        }
+
+        if (hasChanges) {
+            constantsFile.text = content
+        }
+    }
+}
+
+def flowScope = services.get(FlowScope)
+def flowProviders = services.get(FlowProviders)
+def constantsPath = file('org.speleodb.ariane.plugin.speleodb/src/main/java/org/speleodb/ariane/plugin/speleodb/SpeleoDBConstants.java')
+
+flowScope.always(ResetConstantsAction) { spec ->
+    spec.parameters.constantsFile.set(
+        flowProviders.buildWorkResult.map { constantsPath }
+    )
+}
+
