@@ -1,0 +1,41 @@
+---
+description: Testing conventions for the SpeleoDB plugin
+globs: "**/src/test/**/*.java"
+---
+
+# Testing Conventions
+
+## Framework
+- JUnit 5 (`org.junit.jupiter.api.*`)
+- AssertJ for assertions (`assertThat`, `assertThatThrownBy`, `assertThatCode`)
+- Mockito for mocking (`@ExtendWith(MockitoExtension.class)`)
+- TestFX for JavaFX component testing
+
+## Test Mode Isolation
+- Build system sets `SpeleoDBConstants.TEST_MODE = true` before test compilation
+- When TEST_MODE is true, preferences use an isolated node: `org/speleodb/ariane/plugin/speleodb/test`
+- This prevents tests from corrupting real user preferences
+
+## Test Structure
+- Every test class MUST use JUnit 5 `@Test` annotations -- never `public static void main()`
+- Use `@DisplayName` on all test classes and methods
+- Use `@Nested` classes for logical grouping
+- Test helpers go in `TestFixtures.java` and `TestEnvironmentConfig.java`
+
+## JavaFX in Tests
+- Headless rendering: system properties set in root `build.gradle` test block
+- Initialize FX toolkit in `@BeforeAll`: `Platform.startup(() -> {})`
+- Use `CountDownLatch` with timeout for async operations: `latch.await(5, TimeUnit.SECONDS)`
+- Never busy-wait on the FX Application Thread
+
+## Fixtures
+- `TestFixtures` provides: project fixtures, TML file generation, SHA-256 checksums
+- `TestFixtures.calculateChecksum()` delegates to `SpeleoDBService.calculateSHA256()`
+- `TestEnvironmentConfig` loads `.env` for live API tests (optional)
+- Test TML files go in `src/test/resources/artifacts/`
+
+## Anti-Patterns to Avoid
+- No `assert` keyword -- always use AssertJ
+- No `catch (Exception ignored)` in tests -- assert the exception or let it propagate
+- No duplicating production logic in testable inner classes -- use Mockito spies instead
+- No test classes without `@Test` methods

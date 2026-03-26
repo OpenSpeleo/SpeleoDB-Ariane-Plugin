@@ -1,0 +1,42 @@
+---
+description: Gradle build system conventions
+globs: "**/*.gradle,**/gradle-wrapper.properties,**/settings.gradle"
+---
+
+# Gradle Build Conventions
+
+## Multi-Module Structure
+```
+speleoDB_plugin/                       (root project)
+├── com.arianesline.ariane.plugin.api/ (git submodule - plugin API interfaces)
+├── com.arianesline.cavelib.api/       (git submodule - cave survey data model)
+├── org.speleodb.ariane.plugin.speleodb/ (git submodule - the actual plugin)
+└── com.arianesline.plugincontainer/   (local dev runner with JavaFX host)
+```
+
+## Versioning
+- CalVer format: `YYYY.MM.DD` (e.g., `2026.03.25`)
+- `generateReleaseVersion` task mutates `SpeleoDBConstants.java` to inject VERSION
+- `settings.gradle` FlowAction resets VERSION to `null` and TEST_MODE to `false` after build
+
+## Build vs Test
+- `build` task is overridden to only depend on `assemble` (no tests)
+- Run tests explicitly: `./gradlew test` or `./gradlew check`
+- `enableTestMode` task sets `TEST_MODE = true` in source before test compilation
+- CI must run `./gradlew build test` to actually execute tests
+
+## Dependencies
+- Root `subprojects {}` block applies: java-library, javafx plugin, Java 21, `-Xlint:all`
+- Plugin module has: Jakarta JSON, JAXB, JUnit 5, AssertJ, Mockito, TestFX
+- Plugin container shares Jakarta JSON + JAXB but no test deps
+
+## JAR Packaging
+- `archiveBaseName = 'org.speleodb.ariane.plugin.speleodb'`
+- CalVer version in filename
+- DEFLATED compression, ZIP64, sealed manifest
+- `compileJava { options.debug = false }` for release builds (no debug symbols)
+
+## Tasks
+- `copyPlugin`: copies built JAR to plugincontainer's `plugins/` folder
+- `copyAndRun`: copies plugin JAR then runs the container
+- `resetSuccessGifPreference`: utility to reset user preference

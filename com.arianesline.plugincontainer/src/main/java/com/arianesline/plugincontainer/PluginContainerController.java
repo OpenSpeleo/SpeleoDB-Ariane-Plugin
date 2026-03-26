@@ -4,15 +4,15 @@ import static com.arianesline.ariane.plugin.api.DataServerCommands.LOAD;
 import static com.arianesline.ariane.plugin.api.DataServerCommands.SAVE;
 import static com.arianesline.plugincontainer.PluginContainerApplication.pluginContainer;
 
+import java.io.File;
 import java.net.URL;
-import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.ResourceBundle;
 
 import com.arianesline.ariane.plugin.api.Plugin;
 import com.arianesline.ariane.plugin.api.PluginInterface;
 
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
@@ -24,6 +24,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
+import javafx.util.Duration;
 
 public class PluginContainerController implements Initializable {
 
@@ -98,16 +99,20 @@ public class PluginContainerController implements Initializable {
                             if (command.equals(LOAD.name())) {
                                 Platform.runLater(() -> {
                                     core.mainController.showMessage("LOAD REQUESTED");
-                                   var start= LocalDateTime.now();
-                                    while(Duration.between(start,LocalDateTime.now()).toMillis()< 2000){
-//Simulate wait time on Ariane to parse TML
-                                    }
-                                    plugin.setSurvey(new CaveSurveyImpl());
-                                    core.mainController.showMessage(plugin.getSurveyFile().getName());
+                                    PauseTransition pause = new PauseTransition(Duration.seconds(2));
+                                    pause.setOnFinished(e -> {
+                                        plugin.setSurvey(new CaveSurveyImpl());
+                                        File surveyFile = plugin.getSurveyFile();
+                                        core.mainController.showMessage(
+                                            surveyFile != null ? surveyFile.getName() : "(no file)");
+                                    });
+                                    pause.play();
                                 });
                             } else if (command.equals(SAVE.name())) {
                                 core.mainController.showMessage("SAVE REQUESTED");
-                                core.mainController.showMessage(plugin.getSurveyFile().getName());
+                                File surveyFile = plugin.getSurveyFile();
+                                core.mainController.showMessage(
+                                    surveyFile != null ? surveyFile.getName() : "(no file)");
                             }
                         });
                     }

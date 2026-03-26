@@ -1,0 +1,39 @@
+---
+description: JavaFX UI conventions for the SpeleoDB plugin
+globs: "**/*.java,**/*.fxml,**/*.css"
+---
+
+# JavaFX UI Conventions
+
+## Dialog System
+- All dialogs go through `SpeleoDBModals` -- never create raw `Alert`/`Dialog` directly in controllers
+- Use `createBaseAlert()` for standard alert setup (owner, modality, header)
+- Use `applySimpleDialogStyle()` for the common white/shadow/header-panel styling
+- Use `applyMaterialButton()` (or its convenience wrappers) for consistent button styling
+
+## Tooltips
+- All tooltips go through `SpeleoDBTooltips` -- never create raw `Popup` in controllers
+- Initialize once with `SpeleoDBTooltips.initialize(stage)` during startup
+- Types: `SUCCESS`, `ERROR`, `INFO`, `WARNING`
+
+## Threading
+- All UI updates MUST run on the JavaFX Application Thread via `Platform.runLater()`
+- Never block the FX thread with busy-waits or synchronous network calls
+- Use `PauseTransition` for delays, not `Thread.sleep` or while loops
+- `SpeleoDBPlugin.executorService` for background tasks (daemon, cached thread pool)
+
+## FXML
+- Single FXML file: `/fxml/SpeleoDB.fxml`
+- Controller: `SpeleoDBController` (singleton, set via `fxmlLoader.setController()`)
+- `CountDownLatch fxmlInitializedLatch` guards against accessing `@FXML` fields before `initialize()`
+
+## CSS
+- Main stylesheet: `/css/fxmlmain.css`
+- Style constants in `SpeleoDBConstants.STYLES`
+- Material Design color palette in `STYLES.MATERIAL_COLORS`
+- Never hardcode `-fx-*` style strings outside of `SpeleoDBConstants.STYLES`
+
+## Resources
+- Images: `/images/logo.png`, `/images/icons/`, `/images/success_gifs/`
+- Fonts: `/fonts/Lato-*.ttf`
+- Data: `countries.json`, `empty_project.tml`

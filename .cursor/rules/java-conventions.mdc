@@ -1,0 +1,48 @@
+---
+description: Java coding conventions for the SpeleoDB Ariane plugin
+globs: "**/*.java"
+---
+
+# Java Conventions
+
+## Language & Platform
+- Java 21 with JPMS (Java Platform Module System)
+- JavaFX 23.0.1 for UI
+- Gradle 9.0 multi-module build
+- Each module has a `module-info.java` declaring exports, opens, requires, and provides
+
+## Constants
+- All string literals, magic numbers, and configuration values go in `SpeleoDBConstants`
+- Organized into nested final classes: `API`, `HEADERS`, `HTTP_STATUS`, `NETWORK`, `MESSAGES`, `STYLES`, `DIMENSIONS`, `TIMINGS`, `JSON_FIELDS`, etc.
+- Reference via static import or qualified name: `MESSAGES.AUTH_FAILED_STATUS`
+
+## Logging
+- Use `SpeleoDBLogger.getInstance()` exclusively -- never `System.out.println` or `System.err.println` in production code
+- Log levels: `debug()` (file only), `info()` (file + UI), `warn()` (file + UI), `error()` (file + UI)
+- Logger is a singleton with file rotation and UI console integration
+
+## Naming
+- Fields and locals: camelCase (`sdbInstance`, `httpClient`, `tmlFilepath`)
+- Never use snake_case for Java identifiers
+- Constants: `UPPER_SNAKE_CASE` inside `SpeleoDBConstants` nested classes
+
+## Error Handling
+- Never use `catch (Exception ignored) {}` silently -- at minimum log with `logger.debug()`
+- Use `IllegalStateException` for precondition failures (e.g., not authenticated)
+- Use `IllegalArgumentException` for invalid input
+- Custom exceptions: `NotModifiedException` for HTTP 304
+
+## JSON
+- Use `jakarta.json` API (`Json.createReader`, `Json.createObjectBuilder`)
+- Never parse JSON with manual `indexOf`/`substring`
+- Use `JSON_FIELDS.*` constants for field names
+
+## HTTP
+- Use `java.net.http.HttpClient` with proper timeouts from `NETWORK.*` constants
+- `createHttpClientForInstance(String)` selects HTTP version based on protocol
+- All requests must include `timeout()` from `NETWORK.REQUEST_TIMEOUT_SECONDS`
+
+## Singletons
+- `SpeleoDBController`: eagerly initialized `private static final` instance
+- `SpeleoDBLogger`: lazy singleton with double-checked locking
+- Both use `CountDownLatch` or locks for thread safety
