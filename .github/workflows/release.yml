@@ -1,0 +1,96 @@
+name: Release JAR on tag
+
+# Trigger only on release-shaped tags. Throwaway tags (wip-*, bak-*, tmp-*, etc.)
+# do NOT publish a release. softprops/action-gh-release@v2 will create the GitHub
+# Release if missing, so a permissive pattern would auto-publish junk tags.
+#
+# Examples that trigger this workflow:
+#   git tag v2026.04.18 && git push origin v2026.04.18
+#   git tag 2026.04.18  && git push origin 2026.04.18
+on:
+  push:
+    tags:
+      - 'v*'
+      - '*.*.*'
+
+permissions:
+  contents: write    # required to create the GitHub Release and upload assets
+
+jobs:
+  release:
+    name: Build & publish plugin JAR
+    runs-on: ubuntu-latest
+    # Hard cap: tests + build + smoke + publish should take ~10 min on a warm
+    # cache, ~25 min cold. 45 gives slack without letting a stuck test consume
+    # GitHub's default 6h job ceiling on a release tag.
+    timeout-minutes: 45
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 0    # so the tag SHA is reachable for release-notes generation
+
+      - name: Set up JDK 25 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Run plugin tests (gate the release on a green test suite)
+        # `:build` is overridden to `setDependsOn([assemble])`, so it does NOT run
+        # tests. Run them explicitly so a broken commit cannot ship to a Release.
+        run: ./gradlew :org.speleodb.ariane.plugin.speleodb:test
+
+      - name: Verify FlowAction reset SpeleoDBConstants before the release build
+        # If this fires, the post-build FlowAction in settings.gradle didn't reset
+        # the source between :test (which sets TEST_MODE=true) and :build (which
+        # packages the JAR). Continuing would publish a JAR with TEST_MODE=true
+        # baked into bytecode -- subtle, dangerous, and impossible to roll back
+        # once consumers download it. Abort the release.
+        run: |
+          set -eo pipefail
+          CONST=src/main/java/org/speleodb/ariane/plugin/speleodb/SpeleoDBConstants.java
+          cd org.speleodb.ariane.plugin.speleodb
+          if ! grep -qE 'public static final boolean TEST_MODE = false;' "$CONST"; then
+            echo "::error::TEST_MODE not reset after :test -- refusing to build release JAR"
+            grep 'TEST_MODE' "$CONST" || true
+            exit 1
+          fi
+          if ! grep -qE 'public static final String VERSION = null;' "$CONST"; then
+            echo "::error::VERSION not reset after :test -- refusing to build release JAR"
+            grep 'public static final String VERSION' "$CONST" || true
+            exit 1
+          fi
+          echo "OK: source clean, safe to build the release JAR"
+
+      - name: Build plugin JAR (CalVer-stamped via generateReleaseVersion)
+        run: ./gradlew :org.speleodb.ariane.plugin.speleodb:build
+
+      - name: Compute SHA256
+        run: |
+          set -eo pipefail
+          cd org.speleodb.ariane.plugin.speleodb/build/libs
+          for f in *.jar; do
+            sha256sum "$f" > "$f.sha256"
+            cat "$f.sha256"
+          done
+
+      - name: Create / update GitHub Release and upload assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            org.speleodb.ariane.plugin.speleodb/build/libs/*.jar
+            org.speleodb.ariane.plugin.speleodb/build/libs/*.jar.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

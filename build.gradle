@@ -1,3 +1,5 @@
+import org.gradle.process.CommandLineArgumentProvider
+
 plugins {
     id "org.javamodularity.moduleplugin" version "2.0.0"
     id 'org.openjfx.javafxplugin' version "0.1.0"
@@ -46,16 +48,22 @@ subprojects {
     }
 
     javafx {
-        version = "23.0.1"
+        version = providers.gradleProperty('javafxVersion').get()
         modules = [ 'javafx.controls', 'javafx.base' ,'javafx.graphics','javafx.fxml','javafx.swing','javafx.media','javafx.web']
     }
 
     group = 'arianesline'
     version = '25.2.1'
 
+    // Toolchain applies to ALL submodules (including the read-only API submodules)
+    // so Gradle auto-provisions JDK 25 via the foojay resolver in settings.gradle
+    // even when the host JDK running Gradle itself is older.
     java {
-        sourceCompatibility = 21
-        targetCompatibility = 21
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 
     repositories {
@@ -66,17 +74,89 @@ subprojects {
         options.deprecation = true
         options.warnings = true
     }
-    
+
+    // Mockito agent: JDK 25 enforces JEP 451/472 restrictions on dynamic agent attach.
+    // Mockito requires explicit -javaagent attach; otherwise emits warnings and (eventually) fails.
+    // The agent JAR pulled here MUST match `mockito-core` resolved at test time in the plugin
+    // module (both read `mockitoVersion` from gradle.properties so they cannot drift).
+    configurations {
+        mockitoAgent
+    }
+    dependencies {
+        mockitoAgent("org.mockito:mockito-core:${providers.gradleProperty('mockitoVersion').get()}") {
+            transitive = false
+        }
+    }
+
+    // Env vars forwarded from host to the forked test JVM so TestEnvironmentConfig's
+    // env-var fallback (pytest-env style) can resolve credentials in CI without a .env file.
+    def TEST_ENV_KEYS = [
+        'SPELEODB_INSTANCE_URL', 'SPELEODB_OAUTH_TOKEN', 'SPELEODB_EMAIL',
+        'SPELEODB_PASSWORD', 'API_TEST_ENABLED', 'API_TIMEOUT_MS', 'API_RETRY_COUNT'
+    ]
+
+    // Capture the mockito agent FileCollection at configuration time so the value can be
+    // serialized into the configuration cache without referencing the project's
+    // `configurations` container at execution time (Gradle 9 cc rejects that).
+    def mockitoAgentFiles = configurations.mockitoAgent
+
     test {
         jvmArgs = [
             '--enable-native-access=ALL-UNNAMED',
-            '--add-opens=java.base/java.lang=ALL-UNNAMED'
+            '--add-opens=java.base/java.lang=ALL-UNNAMED',
+            '--add-opens=java.base/java.util=ALL-UNNAMED',
+            '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens=java.base/java.io=ALL-UNNAMED'
         ]
+        // CommandLineArgumentProvider is the configuration-cache-safe way to add JVM args
+        // computed from a FileCollection. The provider sees the resolved files, never the
+        // Project / Configuration objects themselves.
+        jvmArgumentProviders.add(new CommandLineArgumentProvider() {
+            @Override
+            Iterable<String> asArguments() {
+                return ["-javaagent:${mockitoAgentFiles.asPath}".toString()]
+            }
+        })
         systemProperty 'java.awt.headless', 'true'
         systemProperty 'prism.order', 'sw'
         systemProperty 'prism.text', 't2k'
         systemProperty 'prism.lcdtext', 'false'
         systemProperty 'prism.subpixeltext', 'false'
+
+        // Hang-fuse: any single test that exceeds 120s is killed with a
+        // TimeoutException instead of consuming the whole CI step. Generous
+        // enough for the slowest live API test (worst case ~75s with retries),
+        // tight enough that an infinite hang surfaces as a normal RED test
+        // result with a stack trace pointing at the exact stuck spot.
+        systemProperty 'junit.jupiter.execution.timeout.default', '120s'
+        // SEPARATE_THREAD mode runs the test in a watchdog-supervised thread so
+        // the timeout actually kills the test on expiry. The default SAME_THREAD
+        // mode relies on Thread.interrupt(), which a test stuck in non-interruptible
+        // I/O (e.g. a synchronous Platform.runLater wait, a busy ZIP read, an
+        // un-timeouted HTTP read) silently ignores -- we'd see a timeout reported
+        // in the JUnit XML but the JVM thread would keep running until the job-level
+        // 30-min cap killed everything.
+        systemProperty 'junit.jupiter.execution.timeout.thread.mode.default', 'SEPARATE_THREAD'
+
+        TEST_ENV_KEYS.each { k ->
+            def v = System.getenv(k)
+            if (v != null) {
+                environment k, v
+            }
+        }
+
+        // Visibility while tests run (Gradle's default only shows results when a
+        // test FINISHES, so a stuck test produces zero output for hours). With
+        // `started` events plus standard streams forwarded, CI logs show exactly
+        // which test class/method is currently executing -- so a hung test is
+        // identifiable from the log instead of a silent black hole.
+        testLogging {
+            events 'started', 'passed', 'failed', 'skipped'
+            exceptionFormat = 'full'
+            showCauses = true
+            showStackTraces = true
+            showStandardStreams = true
+        }
     }
-    
+
 }

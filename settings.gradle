@@ -1,3 +1,11 @@
+// Auto-provision the JDK declared by the toolchain block in build.gradle (JDK 25)
+// when no matching local installation is detected. Required for hermetic builds and
+// for developer machines that only ship an older JDK; resolves toolchains from foojay.io
+// (Adoptium / Temurin etc.).
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 rootProject.name = 'speleoDB'
 
 include 'com.arianesline.ariane.plugin.api'

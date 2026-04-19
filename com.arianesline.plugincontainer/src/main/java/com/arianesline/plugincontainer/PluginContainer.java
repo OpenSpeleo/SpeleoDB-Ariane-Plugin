@@ -3,6 +3,7 @@ package com.arianesline.plugincontainer;
 import java.lang.module.Configuration;
 import java.lang.module.ModuleFinder;
 import java.lang.module.ModuleReference;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,33 @@ public class PluginContainer {
         dataServerPlugins.stream().forEach(p -> getDataServerPlugins().add(p.get()));
     }
 
+    /**
+     * Build a child {@link ModuleLayer} rooted in {@code pluginsDir} and containing every
+     * Ariane plugin module discoverable via {@link ModuleFinder#of(Path...)}. Shared by
+     * the runtime FX path ({@link PlugingLoadTask}) and the headless CI smoke path
+     * ({@code PluginContainerApplication.runSmokeAndExit}) so the discovery logic cannot
+     * drift between them.
+     *
+     * @param pluginsDir directory containing plugin JARs
+     * @return resolved module layer with the system class loader as parent
+     * @throws java.lang.module.FindException if a required transitive module cannot be located
+     */
+    public static ModuleLayer createPluginLayer(Path pluginsDir) {
+        ModuleFinder finder = ModuleFinder.of(pluginsDir);
+        Set<ModuleReference> pluginModuleRefs = finder.findAll();
+        Set<String> pluginRoots = pluginModuleRefs.stream()
+                .map(ref -> ref.descriptor().name())
+                .filter(name -> name.contains(".ariane.plugin"))
+                .collect(Collectors.toSet());
+
+        ModuleLayer parent = ModuleLayer.boot();
+        Configuration cf = parent.configuration()
+                .resolve(finder, ModuleFinder.of(), pluginRoots);
+
+        ClassLoader scl = ClassLoader.getSystemClassLoader();
+        return parent.defineModulesWithOneLoader(cf, scl);
+    }
+
     public class PlugingLoadTask extends Task<Void> {
 
         /**
@@ -51,23 +79,6 @@ public class PluginContainer {
          */
         public PlugingLoadTask() {
             super();
-        }
-
-        ModuleLayer createPluginLayer(String dir) {
-            ModuleFinder finder = ModuleFinder.of(Paths.get(dir));
-            Set<ModuleReference> pluginModuleRefs = finder.findAll();
-            Set<String> pluginRoots = pluginModuleRefs.stream()
-                    .map(ref -> ref.descriptor().name())
-                    .filter(name -> name.contains(".ariane.plugin")) // <1>
-                    .collect(Collectors.toSet());
-
-            ModuleLayer parent = ModuleLayer.boot();
-            Configuration cf = parent.configuration()
-                    .resolve(finder, ModuleFinder.of(), pluginRoots); // <2>
-
-            ClassLoader scl = ClassLoader.getSystemClassLoader();
-
-            return parent.defineModulesWithOneLoader(cf, scl);
         }
 
         @Override
@@ -90,8 +101,7 @@ public class PluginContainer {
 
         @Override
         protected Void call() {
-            var pluginURL = "./plugins";
-            ModuleLayer pluginModuleLayer = createPluginLayer(pluginURL);
+            ModuleLayer pluginModuleLayer = createPluginLayer(Paths.get("./plugins"));
             loadPlugins(pluginModuleLayer);
             return null;
         }
