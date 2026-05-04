@@ -26,7 +26,7 @@ speleoDB_plugin/                       (root project)
 - CI must run `./gradlew build test` to actually execute tests
 
 ## Dependencies
-- Root `subprojects {}` block applies: java-library, javafx plugin, Java 21, `-Xlint:all`
+- Root `subprojects {}` block applies: java-library, javafx plugin, Java 25, `-Xlint:all`
 - Plugin module has: Jakarta JSON, JAXB, JUnit 5, AssertJ, Mockito, TestFX
 - Plugin container shares Jakarta JSON + JAXB but no test deps
 

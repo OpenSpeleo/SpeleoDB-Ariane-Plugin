@@ -6,8 +6,8 @@ globs: "**/*.java"
 # Java Conventions
 
 ## Language & Platform
-- Java 21 with JPMS (Java Platform Module System)
-- JavaFX 23.0.1 for UI
+- Java 25 with JPMS (Java Platform Module System)
+- JavaFX 25.0.2 for UI
 - Gradle 9.0 multi-module build
 - Each module has a `module-info.java` declaring exports, opens, requires, and provides
 

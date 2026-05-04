@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-A Java 21 / JavaFX 23 plugin for the Ariane cave survey editor that integrates with the SpeleoDB platform. The plugin handles authentication, project management (CRUD, upload/download), collaborative locking, announcements, and self-updating.
+A Java 25 / JavaFX 25 plugin for the Ariane cave survey editor that integrates with the SpeleoDB platform. The plugin handles authentication, project management (CRUD, upload/download), collaborative locking, announcements, and self-updating.
 
 ## Architecture
 
