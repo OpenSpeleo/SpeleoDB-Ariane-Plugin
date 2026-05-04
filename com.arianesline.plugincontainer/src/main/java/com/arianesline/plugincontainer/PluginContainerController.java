@@ -1,16 +1,20 @@
 package com.arianesline.plugincontainer;
 
 import static com.arianesline.ariane.plugin.api.DataServerCommands.LOAD;
+import static com.arianesline.ariane.plugin.api.DataServerCommands.LOAD_AGR;
+import static com.arianesline.ariane.plugin.api.DataServerCommands.REDRAW;
 import static com.arianesline.ariane.plugin.api.DataServerCommands.SAVE;
-import static com.arianesline.plugincontainer.PluginContainerApplication.pluginContainer;
+import static com.arianesline.ariane.plugin.api.DataServerCommands.SAVE_AGR;
 
 import java.io.File;
 import java.net.URL;
 import java.util.Comparator;
 import java.util.ResourceBundle;
 
+import com.arianesline.ariane.plugin.api.DataServerCommands;
 import com.arianesline.ariane.plugin.api.Plugin;
 import com.arianesline.ariane.plugin.api.PluginInterface;
+import com.arianesline.cavelib.api.AggregationInterface;
 
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -53,7 +57,7 @@ public class PluginContainerController implements Initializable {
 
     public void updateUIforPlugin() {
 
-        pluginContainer.getDataServerPlugins().stream()
+        PluginContainerApplication.pluginContainer.getDataServerPlugins().stream()
                 .sorted(Comparator.comparing(Plugin::getName))
                 .forEach(plugin -> {
 
@@ -78,13 +82,13 @@ public class PluginContainerController implements Initializable {
                         mainHBox.getChildren().add(button);
 
                         plugin.getCommandProperty().addListener((observableValue, s, command) -> {
-                            if (command.equals(LOAD.name())) {
-                                Platform.runLater(() -> {
+                            switch (DataServerCommands.valueOf(command)) {
+                                case LOAD -> Platform.runLater(() -> {
                                     core.mainController.showMessage("LOAD REQUESTED");
                                     plugin.setSurvey(new CaveSurveyImpl());
                                 });
-                            } else if (command.equals(SAVE.name())) {
-                                core.mainController.showMessage("SAVE REQUESTED");
+                                case SAVE -> core.mainController.showMessage("SAVE REQUESTED");
+                                default -> { /* ignore other commands */ }
                             }
                         });
                     }
@@ -96,8 +100,11 @@ public class PluginContainerController implements Initializable {
                         mainTabPane.getTabs().add(tab);
 
                         plugin.getCommandProperty().addListener((observableValue, s, command) -> {
-                            if (command.equals(LOAD.name())) {
-                                Platform.runLater(() -> {
+                            switch (DataServerCommands.valueOf(command)) {
+
+                                // ========================= TML COMMANDS ========================= //
+
+                                case LOAD -> Platform.runLater(() -> {
                                     core.mainController.showMessage("LOAD REQUESTED");
                                     PauseTransition pause = new PauseTransition(Duration.seconds(2));
                                     pause.setOnFinished(e -> {
@@ -108,11 +115,47 @@ public class PluginContainerController implements Initializable {
                                     });
                                     pause.play();
                                 });
-                            } else if (command.equals(SAVE.name())) {
-                                core.mainController.showMessage("SAVE REQUESTED");
-                                File surveyFile = plugin.getSurveyFile();
-                                core.mainController.showMessage(
-                                    surveyFile != null ? surveyFile.getName() : "(no file)");
+
+                                case SAVE -> Platform.runLater(() -> {
+                                    core.mainController.showMessage("SAVE REQUESTED");
+                                    File surveyFile = plugin.getSurveyFile();
+                                    core.mainController.showMessage(
+                                        surveyFile != null ? surveyFile.getName() : "(no file)");
+                                
+                                });
+
+                                // ========================= AGR COMMANDS ========================= //
+
+                                case LOAD_AGR -> Platform.runLater(() -> {
+                                    core.mainController.showMessage("LOAD AGR REQUESTED");
+                                    PauseTransition pause = new PauseTransition(Duration.seconds(2));
+
+                                    pause.setOnFinished(e -> {
+                                        plugin.setAggregation(new AggregationImpl());
+                                        AggregationInterface aggregation = plugin.getAggregation();
+                                        File agrFile = aggregation != null ? aggregation.getFile() : null;
+                                        core.mainController.showMessage(
+                                            agrFile != null ? agrFile.getName() : "(no file)");
+                                    });
+                                    pause.play();                                
+                                });
+
+                                case SAVE_AGR -> Platform.runLater(() -> {
+                                    core.mainController.showMessage("SAVE AGR REQUESTED");
+                                    AggregationInterface aggregation = plugin.getAggregation();
+                                    File agrFile = aggregation != null ? aggregation.getFile() : null;
+                                    core.mainController.showMessage(
+                                        agrFile != null ? agrFile.getName() : "(no file)");
+                                
+                                });
+
+                                // ========================= REDRAW COMMANDS ========================= //
+                                
+                                case REDRAW -> Platform.runLater(() -> {
+                                    core.mainController.showMessage("REDRAW REQUESTED");
+                                });
+
+                                default -> { /* ignore other commands */ }
                             }
                         });
                     }
