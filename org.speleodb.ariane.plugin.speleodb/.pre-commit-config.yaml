@@ -1,0 +1,23 @@
+exclude: "^bin/"
+
+# default_language_version:
+#   python: python3.14
+
+# ========================================================================= #
+#                                 FORMATING                                 #
+# ========================================================================= #
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        # exclude: ^org.speleodb.ariane.plugin.speleodb/src/main/resources
+      - id: end-of-file-fixer
+        # exclude: ^org.speleodb.ariane.plugin.speleodb/src/main/resources
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: check-case-conflict
+      - id: detect-private-key

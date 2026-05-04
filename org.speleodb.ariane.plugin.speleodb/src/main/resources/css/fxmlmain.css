@@ -1,0 +1,635 @@
+/* Load Lato fonts from resources */
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 300;
+    src: url('../fonts/Lato-Light.ttf');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: italic;
+    font-weight: 300;
+    src: url('../fonts/Lato-LightItalic.ttf');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 400;
+    src: url('../fonts/Lato-Regular.ttf');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: italic;
+    font-weight: 400;
+    src: url('../fonts/Lato-Italic.ttf');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 700;
+    src: url('../fonts/Lato-Bold.ttf');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: italic;
+    font-weight: 700;
+    src: url('../fonts/Lato-BoldItalic.ttf');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: normal;
+    font-weight: 900;
+    src: url('../fonts/Lato-Black.ttf');
+}
+
+@font-face {
+    font-family: 'Lato';
+    font-style: italic;
+    font-weight: 900;
+    src: url('../fonts/Lato-BlackItalic.ttf');
+}
+/* Actual CSS for the plugin */
+
+/* Global Lato font and size for all elements */
+* {
+    font-family: "Lato", "Arial", "Helvetica", "sans-serif" ;
+    -fx-font-family: "Lato", "Arial", "Helvetica", "sans-serif";
+    font-size: 10px ;
+    -fx-font-size: 10px;
+}
+
+.bold{
+    font-weight: bold;
+    -fx-font-weight: bold;
+
+}
+
+.normalweight{
+    font-weight: normal;
+    -fx-font-weight: normal;
+
+}
+
+.big{
+    font-size: 16;
+    -fx-font-size: 16;
+}
+
+.small {
+    font-size: 10;
+    -fx-font-size: 10;
+}
+
+/* Sorting buttons styles */
+.sort-button {
+    -fx-font-family: "System";
+    -fx-font-size: 10;
+    -fx-font-weight: bold;
+    -fx-background-color: -aggregator-bg-color;
+    -fx-text-fill: -text-neutral-fill;
+    -fx-border-color: -text-neutral-fill;
+    -fx-border-width: 1px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+}
+
+.sort-button:hover {
+    -fx-background-color: -hover-color;
+    -fx-text-fill: white;
+}
+
+.sort-button-active {
+    -fx-font-family: "System";
+    -fx-font-size: 10;
+    -fx-font-weight: bold;
+    -fx-background-color: -hover-color;
+    -fx-text-fill: white;
+    -fx-border-color: white;
+    -fx-border-width: 2px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+}
+
+.sort-button-active:hover {
+    -fx-text-fill: black;
+}
+
+.aggregator{
+    font-size: 10;
+    -fx-font-size: 10;
+    background-color: -aggregator-bg-color;
+    -fx-background-color:  -aggregator-bg-color;
+}
+/* ScrollPane styling to maintain aggregator appearance */
+.aggregator .scroll-pane {
+    -fx-background-color: -aggregator-bg-color;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+}
+
+.aggregator .scroll-pane .viewport {
+    -fx-background-color: -aggregator-bg-color;
+}
+
+.aggregator .scroll-pane .corner {
+    -fx-background-color: -aggregator-bg-color;
+}
+
+.aggregator .scroll-pane .scroll-bar:vertical {
+    -fx-background-color: -aggregator-bg-color;
+    -fx-border-color: transparent;
+}
+
+.aggregator .scroll-pane .scroll-bar:vertical .track {
+    -fx-background-color: derive(-aggregator-bg-color, 20%);
+    -fx-border-color: transparent;
+}
+
+.aggregator .scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: -text-neutral-fill;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
+}
+
+.aggregator .scroll-pane .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: -hover-color;
+}
+
+.aggregator .scroll-pane .scroll-bar:vertical .increment-button,
+.aggregator .scroll-pane .scroll-bar:vertical .decrement-button {
+    -fx-background-color: derive(-aggregator-bg-color, 20%);
+    -fx-border-color: transparent;
+}
+
+.aggregator .scroll-pane .scroll-bar:vertical .increment-arrow,
+.aggregator .scroll-pane .scroll-bar:vertical .decrement-arrow {
+    -fx-background-color: -text-neutral-fill;
+}
+
+/* Progress Indicator styling - larger size and brighter blue color */
+.progress-indicator {
+    -fx-progress-color: #45baf0 !important;
+    -fx-pref-width: 80px !important;
+    -fx-pref-height: 80px !important;
+    -fx-max-width: 80px !important;
+    -fx-max-height: 80px !important;
+    -fx-min-width: 80px !important;
+    -fx-min-height: 80px !important;
+}
+
+.progress-indicator .indicator {
+    -fx-progress-color: #45baf0 !important;
+}
+
+.progress-indicator .track {
+    -fx-background-color: transparent !important;
+}
+
+.progress-indicator .percentage {
+    -fx-fill: #4da6ff !important;
+}
+
+/* Disabled state styling - subtle grayed out look */
+.button:disabled {
+    -fx-opacity: 0.6;
+    -fx-text-fill: #888888;
+}
+
+.text-field:disabled, .password-field:disabled {
+    -fx-opacity: 0.6;
+    -fx-text-fill: #999999;
+}
+
+.check-box:disabled {
+    -fx-opacity: 0.6;
+}
+
+.list-view:disabled {
+    -fx-opacity: 0.6;
+}
+
+.titled-pane:disabled {
+    -fx-opacity: 0.6;
+}
+
+.titled-pane:disabled .title {
+    -fx-text-fill: #888888;
+}
+
+/* Darker prompt text for better readability */
+.text-field, .text-area, .password-field {
+    -fx-prompt-text-fill: #6a6a6a;
+}
+
+/* Generic disabled scrollbar styling */
+.text-area .scroll-bar:vertical:disabled {
+    -fx-opacity: 0;
+}
+
+/* Complete scrollbar removal for no-scrollbar-textarea */
+.no-scrollbar-textarea .scroll-bar:vertical {
+    -fx-opacity: 0;
+    -fx-pref-width: 0;
+    -fx-max-width: 0;
+    -fx-min-width: 0;
+}
+
+.no-scrollbar-textarea .scroll-bar:horizontal {
+    -fx-opacity: 0;
+    -fx-pref-height: 0;
+    -fx-max-height: 0;
+    -fx-min-height: 0;
+}
+
+.no-scrollbar-textarea .scroll-pane {
+    -fx-hbar-policy: never;
+    -fx-vbar-policy: never;
+}
+
+.no-scrollbar-textarea .scroll-pane .corner {
+    -fx-opacity: 0;
+}
+
+
+/* Hide scroll arrows for the about WebView */
+#aboutWebView .scroll-bar:vertical .increment-button,
+#aboutWebView .scroll-bar:vertical .decrement-button {
+    -fx-opacity: 0;
+    -fx-cursor: default;
+}
+
+#aboutWebView .scroll-bar:horizontal .increment-button,
+#aboutWebView .scroll-bar:horizontal .decrement-button {
+    -fx-opacity: 0;
+    -fx-cursor: default;
+}
+
+
+/* ==================== MATERIAL DESIGN TOOLTIPS ==================== */
+
+/* Base tooltip style */
+.tooltip-base {
+    -fx-text-fill: white;
+    -fx-padding: 12 20;
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-background-radius: 4;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 8, 0, 0, 2);
+    -fx-alignment: center;
+}
+
+/* Success tooltip (Green) */
+.tooltip-success {
+    -fx-background-color: #4CAF50;
+}
+
+/* Error tooltip (Red) */
+.tooltip-error {
+    -fx-background-color: #F44336;
+}
+
+/* Info tooltip (Blue) */
+.tooltip-info {
+    -fx-background-color: #2196F3;
+    -fx-border-color: rgba(0,0,0,0.15);
+    -fx-border-width: 1;
+}
+
+/* Warning tooltip (Orange) */
+.tooltip-warning {
+    -fx-background-color: #FF9800;
+}
+
+/* ==================== MATERIAL DESIGN MODALS ==================== */
+
+/* Dialog pane styling */
+.material-dialog {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 4);
+}
+
+/* Dialog content container */
+.material-dialog-content {
+    -fx-background-color: white;
+    -fx-padding: 24;
+    -fx-spacing: 16;
+}
+
+/* Dialog header panel */
+.material-dialog-header {
+    -fx-background-color: transparent;
+    -fx-padding: 0 0 16 0;
+}
+
+/* Dialog title style */
+.material-dialog-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #212121;
+}
+
+/* Dialog message text */
+.material-dialog-text {
+    -fx-font-size: 14px;
+    -fx-text-fill: #424242;
+    -fx-wrap-text: true;
+    -fx-line-spacing: 2;
+}
+
+/* Input field in dialogs */
+.material-input {
+    -fx-font-size: 14px;
+    -fx-padding: 8 12;
+    -fx-border-color: #BDBDBD;
+    -fx-border-width: 0 0 2 0;
+    -fx-background-color: transparent;
+    -fx-text-fill: #212121;
+}
+
+.material-input:focused {
+    -fx-border-color: #2196F3;
+}
+
+/* ==================== MATERIAL DESIGN BUTTONS ==================== */
+
+/* Base material button */
+.material-button {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 12 20;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+/* Primary button (Blue) */
+.material-button-primary {
+    -fx-background-color: #2196F3;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(33,150,243,0.3), 4, 0, 0, 2);
+}
+
+.material-button-primary:hover {
+    -fx-background-color: #1976D2;
+    -fx-effect: dropshadow(three-pass-box, rgba(25,118,210,0.4), 6, 0, 0, 3);
+}
+
+/* Success button (Green) */
+.material-button-success {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(76,175,80,0.3), 4, 0, 0, 2);
+}
+
+.material-button-success:hover {
+    -fx-background-color: #388E3C;
+    -fx-effect: dropshadow(three-pass-box, rgba(56,142,60,0.4), 6, 0, 0, 3);
+}
+
+/* Error/Danger button (Red) */
+.material-button-error {
+    -fx-background-color: #F44336;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(244,67,54,0.3), 4, 0, 0, 2);
+}
+
+.material-button-error:hover {
+    -fx-background-color: #D32F2F;
+    -fx-effect: dropshadow(three-pass-box, rgba(211,47,47,0.4), 6, 0, 0, 3);
+}
+
+/* Warning button (Orange) */
+.material-button-warning {
+    -fx-background-color: #FF9800;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(255,152,0,0.3), 4, 0, 0, 2);
+}
+
+.material-button-warning:hover {
+    -fx-background-color: #F57C00;
+    -fx-effect: dropshadow(three-pass-box, rgba(245,124,0,0.4), 6, 0, 0, 3);
+}
+
+/* Button bar styling */
+.material-button-bar {
+    -fx-padding: 16px 0px 20px 0px;
+    -fx-alignment: center;
+    -fx-spacing: 12px;
+    -fx-background-color: #FAFAFA;
+    -fx-border-color: #E0E0E0;
+    -fx-border-width: 1px 0px 0px 0px;
+}
+
+/* Success celebration label */
+.success-celebration-label {
+    -fx-font-size: 24px;
+    -fx-text-fill: #4CAF50;
+    -fx-font-weight: bold;
+}
+
+/* ==================== GENERIC MATERIAL STYLES ==================== */
+
+/* White background */
+.material-white-bg {
+    -fx-background-color: white;
+}
+
+/* Transparent background */
+.material-transparent-bg {
+    -fx-background-color: transparent;
+}
+
+/* Standard padding */
+.material-padding {
+    -fx-padding: 24;
+}
+
+/* Standard spacing */
+.material-spacing {
+    -fx-spacing: 16;
+}
+
+/* ==================== MODAL INPUT FIELDS ==================== */
+
+/* Material input field base style */
+/* NOTE: Reverted to inline styles due to dynamic hover effects
+.material-input-field {
+    -fx-font-size: 14px;
+    -fx-padding: 10;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #BDBDBD;
+    -fx-border-width: 1;
+}
+
+.material-input-field:hover {
+    -fx-border-color: #2196F3;
+}
+
+.material-input-field:focused {
+    -fx-border-color: #2196F3;
+    -fx-border-width: 2;
+}
+*/
+
+/* ==================== DIALOG HEADER STYLES ==================== */
+
+.dialog-header-transparent {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+/* ==================== SUCCESS CELEBRATION ==================== */
+
+/* NOTE: Reverted to inline styles for proper spacing control
+.success-celebration-content {
+    -fx-background-color: white;
+    -fx-padding: 20;
+}
+*/
+
+/* ==================== BUTTON VARIATIONS ==================== */
+
+/* Neutral/Secondary button */
+.material-button-neutral {
+    -fx-background-color: #9E9E9E;
+    -fx-text-fill: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(158,158,158,0.3), 4, 0, 0, 2);
+}
+
+.material-button-neutral:hover {
+    -fx-background-color: #757575;
+    -fx-effect: dropshadow(three-pass-box, rgba(117,117,117,0.4), 6, 0, 0, 3);
+}
+
+/* ==================== CONTENT CONTAINERS ==================== */
+
+.material-content-box {
+    -fx-background-color: white;
+    -fx-background-radius: 4;
+    -fx-padding: 24;
+    -fx-spacing: 16;
+}
+
+/* Simple dialog content without spacing */
+.material-dialog-content-simple {
+    -fx-background-color: white;
+    -fx-background-radius: 4px;
+}
+
+/* ==================== DIALOG MESSAGE STYLES ==================== */
+
+/* Generic dialog message text */
+.material-dialog-message {
+    -fx-font-size: 14px;
+    -fx-text-fill: #212121;
+    -fx-line-spacing: 2;
+    -fx-wrap-text: true;
+}
+
+/* ==================== DIALOG PANE OVERRIDE ==================== */
+
+/* NOTE: These are handled with inline styles to ensure proper dialog sizing
+/* Reset dialog pane padding */
+.dialog-pane {
+    -fx-padding: 0;
+}
+
+/* Override default dialog header panel */
+.dialog-pane .header-panel {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+*/
+
+/* ==================== SUCCESS CELEBRATION LABEL ==================== */
+
+/* NOTE: Reverted to inline styles
+.success-celebration-label {
+    -fx-font-size: 24px;
+    -fx-text-fill: #4CAF50;
+    -fx-font-weight: bold;
+}
+*/
+
+/* ==================== BUTTON BAR STYLING ==================== */
+
+/* Material Design centered button bar */
+/* NOTE: Reverted to inline CSS injection for proper button centering
+.material-button-bar-centered {
+    -fx-padding: 16 0 20 0;
+    -fx-alignment: center;
+    -fx-spacing: 12;
+    -fx-background-color: #FAFAFA;
+    -fx-border-color: #E0E0E0;
+    -fx-border-width: 1 0 0 0;
+}
+
+.material-button-bar-centered .button {
+    -fx-margin: 0 6 0 6;
+}
+*/
+
+/* ==================== DYNAMIC BUTTON STYLES ==================== */
+
+/* Base style for dynamically sized buttons */
+.material-button-dynamic {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 12 20;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-text-fill: white;
+}
+
+/* Info colored dynamic button */
+.material-button-dynamic-info {
+    -fx-background-color: #2196F3;
+    -fx-effect: dropshadow(three-pass-box, rgba(33,150,243,0.3), 4, 0, 0, 2);
+}
+
+.material-button-dynamic-info:hover {
+    -fx-background-color: #1976D2;
+    -fx-effect: dropshadow(three-pass-box, rgba(25,118,210,0.4), 6, 0, 0, 3);
+}
+
+/* ==================== PREDEFINED BUTTON WIDTHS ==================== */
+
+.button-width-140 {
+    -fx-min-width: 140px;
+    -fx-pref-width: 140px;
+    -fx-max-width: 140px;
+}
+
+.button-width-160 {
+    -fx-min-width: 160px;
+    -fx-pref-width: 160px;
+    -fx-max-width: 160px;
+}
+
+.button-width-180 {
+    -fx-min-width: 180px;
+    -fx-pref-width: 180px;
+    -fx-max-width: 180px;
+}
+
+/* ==================== DIALOG PANE STYLES ==================== */
+
+/* Material Design dialog pane */
+/* NOTE: Reverted to inline styles to prevent dialog sizing conflicts
+.material-dialog-pane {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 10, 0, 0, 4);
+}
+*/

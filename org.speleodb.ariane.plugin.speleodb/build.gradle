@@ -1,0 +1,294 @@
+plugins {
+    id 'java-library'
+    id 'jacoco'
+    id 'org.owasp.dependencycheck' version '11.1.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+// Store the CalVer version as a project property (available during configuration)
+ext.calVerVersion = new Date().format('yyyy.MM.dd')
+
+// Java 25 toolchain + source/target compatibility are declared once in the root
+// `subprojects {}` block so all submodules stay in lockstep. Don't redeclare here.
+
+dependencies {
+    api project(':com.arianesline.cavelib.api')
+    api project(':com.arianesline.ariane.plugin.api')
+    implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.2")
+    implementation("org.glassfish.jaxb:jaxb-runtime:4.0.5")
+    implementation("jakarta.json:jakarta.json-api:2.1.3")
+    implementation ('org.eclipse.parsson:parsson:1.1.4')
+    implementation("org.glassfish:jakarta.json:2.0.1")
+
+    // Testing dependencies (bumped for JDK 25 compatibility).
+    // Versions live in gradle.properties so the Mockito agent (root build.gradle)
+    // cannot drift from the test runtime here -- ByteBuddy/ASM must match.
+    testImplementation platform("org.junit:junit-bom:${providers.gradleProperty('junitBomVersion').get()}")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation "org.assertj:assertj-core:${providers.gradleProperty('assertjVersion').get()}"
+    testImplementation "org.mockito:mockito-core:${providers.gradleProperty('mockitoVersion').get()}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${providers.gradleProperty('mockitoVersion').get()}"
+    // mockito-inline is no longer needed: inline mock-maker is the default in Mockito 5.x
+    // and ships inside mockito-core.
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // JavaFX testing support
+    testImplementation "org.testfx:testfx-core:${providers.gradleProperty('testfxVersion').get()}"
+    testImplementation "org.testfx:testfx-junit5:${providers.gradleProperty('testfxVersion').get()}"
+
+    // Hermetic HTTP server for WireMock-based service tests (test scope only).
+    testImplementation "org.wiremock:wiremock-standalone:${providers.gradleProperty('wiremockVersion').get()}"
+}
+
+// JaCoCo coverage report runs after :test and writes to build/reports/jacoco/
+// 0.8.14+ adds official support for JDK 25 class files (major version 69).
+jacoco {
+    toolVersion = '0.8.14'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+}
+
+// OWASP Dependency-Check: surface known CVEs in dependencies. Non-blocking by default
+// (no failBuildOnCVSS) so CI can publish the report as a warning without breaking releases.
+// Run nightly via .github/workflows/dependency-vuln-scan.yml -- not per-PR -- to avoid
+// NVD rate-limit noise on every push.
+dependencyCheck {
+    formats = ['HTML', 'JSON']
+    suppressionFile = file('owasp-suppressions.xml').exists() ? 'owasp-suppressions.xml' : null
+    // Skip configurations Gradle uses internally that can't be resolved without test/runtime context.
+    skipConfigurations = ['archives', 'mockitoAgent']
+    // Optional NVD API key (set via -PnvdApiKey=... in CI); skips the public rate limit.
+    if (project.hasProperty('nvdApiKey') && project.property('nvdApiKey')?.toString()?.trim()) {
+        nvd {
+            apiKey = project.property('nvdApiKey').toString().trim()
+        }
+    }
+}
+
+
+tasks.register('help-build') {
+    group = 'help'
+    description = 'Shows available build and test tasks'
+
+    doLast {
+        println ''
+        println '=== SpeleoDB Plugin Build Tasks ==='
+        println ''
+        println 'BUILD TASKS (no tests):'
+        println '  ./gradlew build           - Build without running tests'
+        println '  ./gradlew assemble        - Assemble the JAR file'
+        println ''
+        println 'TEST TASKS:'
+        println '  ./gradlew test            - Run all tests'
+        println '  ./gradlew check           - Run tests and checks'
+        println ''
+        println 'COMBINED:'
+        println '  ./gradlew build test      - Build and then run tests (separate tasks)'
+        println ''
+        println 'CLEAN STATE TASKS:'
+        println '  ./gradlew clean           - Clean all build outputs'
+        println '  ./gradlew clean build     - Clean and build from scratch (no tests)'
+        println '  ./gradlew clean test      - Clean and run tests from scratch'
+        println '  ./gradlew clean build test - Clean, build, and test (separate tasks)'
+        println ''
+        println 'USEFUL COMBINATIONS:'
+        println '  ./gradlew clean assemble  - Clean and create JAR only'
+        println '  ./gradlew --refresh-dependencies build - Refresh deps and build'
+        println '  ./gradlew build --info    - Build with detailed output'
+        println '  ./gradlew test --info     - Run tests with detailed output'
+        println ''
+        println 'TIP: Use "clean" before any task to ensure a fresh build state.'
+        println ''
+        println 'LIVE API TEST CONFIG:'
+        println '  Live API tests (SpeleoDBAPITest) read SPELEODB_* settings via this order:'
+        println '    1. .env file (org.speleodb.ariane.plugin.speleodb/.env or repo root .env)'
+        println '    2. Process environment variables (set via shell or CI secrets)'
+        println '    3. Java system properties (-DSPELEODB_OAUTH_TOKEN=...)'
+        println '  In CI we set env vars from GitHub secrets (no .env file needed).'
+        println ''
+    }
+}
+// Task to generate version based on build date
+tasks.register('generateReleaseVersion') {
+    group = 'build'
+    description = 'Generates version string based on current date in CalVer format (YYYY.MM.DD)'
+
+    inputs.property('calVerVersion', calVerVersion)
+    def constantsFile = layout.projectDirectory.file('src/main/java/org/speleodb/ariane/plugin/speleodb/SpeleoDBConstants.java').asFile
+
+    doFirst {
+        def versionString = inputs.properties['calVerVersion']
+        def versionDisplay = "v${versionString}"
+
+        println "Generating version: ${versionString} (display: ${versionDisplay})"
+
+        def content = constantsFile.text
+
+        content = content.replaceFirst(
+            /(?s)(SpeleoDB Plugin Version.*?\n\s*\*\/\s*\n)(\s*public static final String VERSION = )null;/,
+            "\$1\$2\"${versionString}\";"
+        )
+
+        constantsFile.text = content
+
+        println "Updated SpeleoDBConstants.java with version: ${versionString}"
+    }
+}
+
+// Task to enable test mode for isolated preferences
+tasks.register('enableTestMode') {
+    group = 'test'
+    description = 'Enables test mode to isolate test preferences from user preferences'
+
+    mustRunAfter generateReleaseVersion
+    def constantsFile = layout.projectDirectory.file('src/main/java/org/speleodb/ariane/plugin/speleodb/SpeleoDBConstants.java').asFile
+    outputs.upToDateWhen { false }
+
+    doFirst {
+        println "Enabling test mode for preference isolation..."
+
+        def content = constantsFile.text
+
+        content = content.replaceFirst(
+            /public static final boolean TEST_MODE = false;/,
+            "public static final boolean TEST_MODE = true;"
+        )
+
+        constantsFile.text = content
+
+        println "Test mode ENABLED - tests will use isolated preferences"
+    }
+}
+
+// Configure test task to ensure proper ordering.
+// `dependsOn jar` is intentional: JarManifestTest + ModuleProvidesTest open the built
+// JAR from build/libs/ to validate manifest entries and module-layer ServiceLoader
+// discovery. Without this, those tests would `assumeTrue`-skip when run via a bare
+// `:test` invocation that hasn't packaged a JAR yet.
+test {
+    useJUnitPlatform()
+    dependsOn generateReleaseVersion, enableTestMode, jar
+}
+
+// When the test task is in the execution graph, force recompilation after enableTestMode
+// so SpeleoDBConstants.TEST_MODE = true is picked up by the compiler.
+gradle.taskGraph.whenReady { graph ->
+    if (graph.hasTask(tasks.named('test').get())) {
+        compileJava.outputs.upToDateWhen { false }
+    }
+}
+
+// Update the check task - only enable test mode when running checks/tests
+check {
+    dependsOn generateReleaseVersion, enableTestMode
+}
+
+// Configure the build task to NOT run tests/checks by default
+build {
+    setDependsOn([assemble])
+
+    doFirst {
+        println 'Building without running tests. Use "./gradlew test" or "./gradlew check" to run tests.'
+    }
+}
+
+// Configure Java compiler optimizations for release builds
+compileJava {
+    // Make compileJava depend on generateReleaseVersion so version is always up to date
+    dependsOn generateReleaseVersion
+
+    options.compilerArgs += [
+        '-Xlint:all',          // Enable all warnings (helps catch inefficiencies)
+        '-Xlint:-serial',      // Disable serial warnings if not needed
+        '-parameters'          // Preserve parameter names for better debugging
+    ]
+    options.encoding = 'UTF-8'
+    options.debug = false      // Disable debug info for release builds
+
+    // Ensure proper ordering: if both tasks run, enableTestMode must run first
+    mustRunAfter enableTestMode
+}
+
+compileTestJava {
+    mustRunAfter enableTestMode
+}
+
+// Configure jar task to use CalVer version in filename with ZIP compression
+jar {
+    dependsOn generateReleaseVersion
+    archiveBaseName = 'org.speleodb.ariane.plugin.speleodb'
+    archiveVersion = project.calVerVersion
+
+    // Wipe stale CalVer JARs from previous days so build/libs only ever contains
+    // today's artifact. Replaces the old standalone `cleanBuildArtifacts` task,
+    // which was wired into `compileJava` and forced a full recompile + re-jar
+    // on every test run for no real protection.
+    //
+    // libsDir captured at configuration time (the configuration cache rejects
+    // `layout` lookups inside execution-time closures).
+    def libsDir = layout.buildDirectory.dir('libs').get().asFile
+    doFirst {
+        if (libsDir.exists()) {
+            libsDir.listFiles({ f -> f.isFile() && f.name.endsWith('.jar') } as java.io.FileFilter)
+                    ?.each { it.delete() }
+        }
+    }
+
+    // Optimize JAR structure and compression
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    // Use most aggressive compression available in standard ZIP format
+    entryCompression = ZipEntryCompression.DEFLATED
+    zip64 = true  // Enable ZIP64 extensions for better compression
+
+    // Add security and optimization manifest entries.
+    // Build-Jdk is pinned to the major version (not java.version) so two builds on
+    // different JDK 25 patch levels still produce a bit-identical JAR.
+    manifest {
+        attributes(
+            'Sealed': 'true',
+            'Implementation-Title': 'SpeleoDB Ariane Plugin',
+            'Implementation-Version': project.calVerVersion,
+            'Implementation-Vendor': 'SpeleoDB Software',
+            'Built-By': 'Jonathan Dekhtiar',
+            'Build-Jdk': '25',
+            'Created-By': "Gradle ${gradle.gradleVersion}",
+            'Multi-Release': 'false'  // Explicitly disable for clarity
+        )
+    }
+
+    // Preserve file timestamps for better caching
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+// Task to reset the 'Do not show again' preference for success GIF
+tasks.register('resetSuccessGifPreference') {
+    group = 'utilities'
+    description = 'Resets the SpeleoDB preference that suppresses the success GIF (sets it back to false)'
+
+    doLast {
+        def suppressKey = 'SDB_SUPPRESS_SUCCESS_GIF'
+        println "Resetting preference '${suppressKey}' to false..."
+        try {
+            // Use explicit absolute node path matching the controller package
+            def prefs = java.util.prefs.Preferences.userRoot().node('/org/speleodb/ariane/plugin/speleodb')
+            prefs.putBoolean(suppressKey, false)
+            prefs.flush()
+            println "Preference '${suppressKey}' set to: " + prefs.getBoolean(suppressKey, false)
+        } catch (Throwable t) {
+            println "Failed to reset preference: ${t.message}"
+            throw t
+        }
+    }
+}
