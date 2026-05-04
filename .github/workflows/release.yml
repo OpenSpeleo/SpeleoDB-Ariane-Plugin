@@ -20,10 +20,24 @@ jobs:
   release:
     name: Build & publish plugin JAR
     runs-on: ubuntu-latest
-    # Hard cap: tests + build + smoke + publish should take ~10 min on a warm
+    # Hard cap: tests + build + manifest + publish should take ~10 min on a warm
     # cache, ~25 min cold. 45 gives slack without letting a stuck test consume
     # GitHub's default 6h job ceiling on a release tag.
     timeout-minutes: 45
+
+    # ---------------------------------------------------------------------------
+    # Source of truth for Ariane host-version compatibility bounds, baked into
+    # the published latest.json manifest as min_software_version / max_software_version.
+    #
+    # MIN_ARIANE_VERSION (required) -- bumped per release as the plugin starts using
+    #   newer host APIs. CalVer X.Y.Z. Audit trail = git history of this file.
+    # MAX_ARIANE_VERSION (optional) -- empty string -> JSON null. Set only when a
+    #   future host release is known to break this plugin.
+    # ---------------------------------------------------------------------------
+    env:
+      MIN_ARIANE_VERSION: "25.3.1"
+      MAX_ARIANE_VERSION: ""
+
     steps:
       - name: Checkout (with submodules)
         uses: actions/checkout@v5
@@ -46,7 +60,10 @@ jobs:
       - name: Run plugin tests (gate the release on a green test suite)
         # `:build` is overridden to `setDependsOn([assemble])`, so it does NOT run
         # tests. Run them explicitly so a broken commit cannot ship to a Release.
-        run: ./gradlew :org.speleodb.ariane.plugin.speleodb:test
+        # `-PreleaseVersion` derived from the tag (with optional `v` prefix stripped)
+        # so test JARs and the release JAR are built from the exact same version
+        # source -- not the runner clock.
+        run: ./gradlew :org.speleodb.ariane.plugin.speleodb:test -PreleaseVersion=${GITHUB_REF_NAME#v}
 
       - name: Verify FlowAction reset SpeleoDBConstants before the release build
         # If this fires, the post-build FlowAction in settings.gradle didn't reset
@@ -70,8 +87,8 @@ jobs:
           fi
           echo "OK: source clean, safe to build the release JAR"
 
-      - name: Build plugin JAR (CalVer-stamped via generateReleaseVersion)
-        run: ./gradlew :org.speleodb.ariane.plugin.speleodb:build
+      - name: Build plugin JAR (CalVer-stamped from the git tag, NOT the runner clock)
+        run: ./gradlew :org.speleodb.ariane.plugin.speleodb:build -PreleaseVersion=${GITHUB_REF_NAME#v}
 
       - name: Compute SHA256
         run: |
@@ -81,6 +98,64 @@ jobs:
             sha256sum "$f" > "$f.sha256"
             cat "$f.sha256"
           done
+
+      - name: Generate latest.json
+        # Composes the update manifest from MIN/MAX_ARIANE_VERSION env + the just-built
+        # JAR's filename + computed SHA-256, then writes build/libs/latest.json. Uploaded
+        # as a release asset in the next step; consumed at runtime by the in-app updater.
+        run: ./gradlew :org.speleodb.ariane.plugin.speleodb:generateUpdateManifest -PreleaseVersion=${GITHUB_REF_NAME#v} -PreleaseTag=${GITHUB_REF_NAME}
+
+      - name: Verify tag <-> JAR <-> manifest version alignment
+        # Defense-in-depth: catches any drift between the git tag, the built JAR's
+        # filename, and the version embedded in latest.json before users ever see it.
+        # Failure modes this prevents:
+        #  * forgetting to pass -PreleaseVersion in one of the gradle invocations
+        #  * a hand-edit to build.gradle that bypasses calVerVersion
+        #  * a hand-edit to the gradle task that hardcodes a different version
+        run: |
+          set -eo pipefail
+          TAG_VER="${GITHUB_REF_NAME#v}"
+          LIBS_DIR="org.speleodb.ariane.plugin.speleodb/build/libs"
+          JAR_NAME="org.speleodb.ariane.plugin.speleodb-${TAG_VER}.jar"
+          JAR_PATH="$LIBS_DIR/$JAR_NAME"
+          if [ ! -f "$JAR_PATH" ]; then
+            echo "::error::Expected release JAR not found at $JAR_PATH"
+            ls -1 "$LIBS_DIR" || true
+            exit 1
+          fi
+          JAR_COUNT=$(python3 - <<'PY'
+from pathlib import Path
+print(len(list(Path("org.speleodb.ariane.plugin.speleodb/build/libs").glob("*.jar"))))
+PY
+          )
+          if [ "$JAR_COUNT" -ne 1 ]; then
+            echo "::error::Expected exactly one release JAR in $LIBS_DIR, found $JAR_COUNT"
+            ls -1 "$LIBS_DIR"/*.jar || true
+            exit 1
+          fi
+          JAR_VER=$(echo "$JAR_NAME" | sed -E 's/^org\.speleodb\.ariane\.plugin\.speleodb-(.+)\.jar$/\1/')
+          MANIFEST_VER=$(python3 - <<'PY'
+import json
+from pathlib import Path
+print(json.loads(Path("org.speleodb.ariane.plugin.speleodb/build/libs/latest.json").read_text(encoding="utf-8"))["version"])
+PY
+          )
+          MANIFEST_URL=$(python3 - <<'PY'
+import json
+from pathlib import Path
+print(json.loads(Path("org.speleodb.ariane.plugin.speleodb/build/libs/latest.json").read_text(encoding="utf-8"))["download_url"])
+PY
+          )
+          if [ "$TAG_VER" != "$JAR_VER" ] || [ "$TAG_VER" != "$MANIFEST_VER" ]; then
+            echo "::error::Version mismatch: tag=$TAG_VER jar=$JAR_VER manifest=$MANIFEST_VER"
+            exit 1
+          fi
+          EXPECTED_URL="https://github.com/OpenSpeleo/SpeleoDB-Ariane-Plugin/releases/download/${GITHUB_REF_NAME}/${JAR_NAME}"
+          if [ "$MANIFEST_URL" != "$EXPECTED_URL" ]; then
+            echo "::error::Manifest download_url mismatch: expected=$EXPECTED_URL actual=$MANIFEST_URL"
+            exit 1
+          fi
+          echo "OK: tag/jar/manifest all = $TAG_VER"
 
       - name: Create / update GitHub Release and upload assets
         uses: softprops/action-gh-release@v2
@@ -92,5 +167,6 @@ jobs:
           files: |
             org.speleodb.ariane.plugin.speleodb/build/libs/*.jar
             org.speleodb.ariane.plugin.speleodb/build/libs/*.jar.sha256
+            org.speleodb.ariane.plugin.speleodb/build/libs/latest.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
