@@ -2,9 +2,9 @@ name: Java CI with Gradle
 
 on:
   push:
-    branches: ["main", "dev"]
+    branches: ["master", "dev"]
   pull_request:
-    branches: ["main"]
+    branches: ["master"]
 
 # Cancel in-progress runs on the same ref when a new push lands.
 # This is run-cancellation only -- it does NOT introduce parallel test execution.
