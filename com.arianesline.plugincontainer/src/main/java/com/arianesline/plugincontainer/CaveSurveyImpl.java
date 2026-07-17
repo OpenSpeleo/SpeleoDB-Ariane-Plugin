@@ -9,7 +9,7 @@ import com.arianesline.cavelib.api.SurveyDataInterface;
 import javafx.scene.paint.Color;
 
 public class CaveSurveyImpl implements CaveSurveyInterface {
-    
+
     /**
      * Default constructor for CaveSurveyImpl.
      */

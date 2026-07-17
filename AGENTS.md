@@ -2,25 +2,37 @@
 
 ## Project Overview
 
-A Java 25 / JavaFX 25 plugin for the Ariane cave survey editor that integrates with the SpeleoDB platform. The plugin handles authentication, project management (CRUD, upload/download), collaborative locking, announcements, and self-updating.
+A Java 25 / JavaFX 25 plugin for the Ariane cave survey editor that integrates
+with the SpeleoDB platform. The plugin handles authentication, project
+management (CRUD, upload/download), collaborative locking, announcements, and
+self-updating.
 
 ## Architecture
 
-- **Multi-module Gradle project** with JPMS, three git submodules, and a local dev container
-- **`org.speleodb.ariane.plugin.speleodb`**: the plugin itself (service, controller, modals, tooltips, logger)
-- **`com.arianesline.ariane.plugin.api`**: host app plugin API interfaces (submodule, do not modify)
-- **`com.arianesline.cavelib.api`**: cave survey data model interfaces (submodule, do not modify)
-- **`com.arianesline.plugincontainer`**: local dev JavaFX host for testing the plugin
+- **Multi-module Gradle project** with JPMS, three git submodules, and a local
+  dev container
+- **`org.speleodb.ariane.plugin.speleodb`**: the plugin itself (service,
+  controller, modals, tooltips, logger)
+- **`com.arianesline.ariane.plugin.api`**: host app plugin API interfaces
+  (submodule, do not modify)
+- **`com.arianesline.cavelib.api`**: cave survey data model interfaces
+  (submodule, do not modify)
+- **`com.arianesline.plugincontainer`**: local dev JavaFX host for testing the
+  plugin
 
 ## Key Patterns
 
-1. **Constants centralization**: All literals go in `SpeleoDBConstants` nested classes
-2. **Centralized logging**: Use `SpeleoDBLogger.getInstance()`, never `System.out`
+1. **Constants centralization**: All literals go in `SpeleoDBConstants` nested
+   classes
+2. **Centralized logging**: Use `SpeleoDBLogger.getInstance()`, never
+   `System.out`
 3. **Modal dialogs**: Use `SpeleoDBModals` helpers, never raw `Alert`/`Dialog`
 4. **Tooltips**: Use `SpeleoDBTooltips`, never raw `Popup`
-5. **HTTP clients**: Use `createHttpClientForInstance(url)` with proper timeout constants
+5. **HTTP clients**: Use `createHttpClientForInstance(url)` with proper timeout
+   constants
 6. **JSON parsing**: Use `jakarta.json` API with `JSON_FIELDS.*` constants
-7. **Threading**: All UI on FX thread via `Platform.runLater()`, background work on `executorService`
+7. **Threading**: All UI on FX thread via `Platform.runLater()`, background work
+   on `executorService`
 
 ## Build & Test
 
@@ -31,10 +43,13 @@ A Java 25 / JavaFX 25 plugin for the Ariane cave survey editor that integrates w
 ./gradlew copyAndRun     # Build, copy JAR, launch dev container
 ```
 
-- `build` is overridden to only run `assemble` -- tests require explicit `test` or `check`
+- `build` is overridden to only run `assemble` -- tests require explicit `test`
+  or `check`
 - CalVer versioning (`YYYY.MM.DD`) via `generateReleaseVersion` task
-- `TEST_MODE` flag in `SpeleoDBConstants` is automatically toggled by the build system
-- Post-build FlowAction in `settings.gradle` resets VERSION and TEST_MODE in source
+- `TEST_MODE` flag in `SpeleoDBConstants` is automatically toggled by the build
+  system
+- Post-build FlowAction in `settings.gradle` resets VERSION and TEST_MODE in
+  source
 
 ## Testing
 
@@ -54,6 +69,7 @@ A Java 25 / JavaFX 25 plugin for the Ariane cave survey editor that integrates w
 ## Detailed Rules
 
 See `.cursor/rules/` for file-type-specific conventions:
+
 - `java-conventions.mdc` -- Java language and library patterns
 - `gradle-build.mdc` -- Build system and versioning
 - `testing.mdc` -- Test framework and patterns

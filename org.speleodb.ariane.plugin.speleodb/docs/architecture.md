@@ -47,6 +47,7 @@ graph TB
 ## Component Responsibilities
 
 ### SpeleoDBPlugin (SPI Entry Point)
+
 - Implements `DataServerPlugin` from the Ariane plugin API
 - Manages lifecycle: `showUI()`, `closeUI()`, `getUINode()`
 - Owns the `ExecutorService` for background tasks
@@ -54,6 +55,7 @@ graph TB
 - Handles JVM shutdown hook for lock release
 
 ### SpeleoDBController (UI Controller - Singleton)
+
 - FXML controller for `SpeleoDB.fxml`
 - Manages all UI state: authentication, project list, current project, locks
 - Coordinates between `SpeleoDBService` (network) and `SpeleoDBModals` (dialogs)
@@ -61,6 +63,7 @@ graph TB
 - Handles keyboard shortcuts (Ctrl+S/Cmd+S for save)
 
 ### SpeleoDBService (Network Layer)
+
 - Encapsulates all HTTP communication with the SpeleoDB REST API
 - Manages authentication state (`authToken`, `sdbInstance`)
 - URL normalization: auto-detects local vs remote hosts for http/https
@@ -68,12 +71,16 @@ graph TB
 - JSON parsing via `jakarta.json` API
 
 ### SpeleoDBModals (Dialog Layer)
-- All modal dialogs: confirmation, error, warning, info, input, success celebration
-- Material Design styling with `createBaseAlert()` and `applySimpleDialogStyle()`
+
+- All modal dialogs: confirmation, error, warning, info, input, success
+  celebration
+- Material Design styling with `createBaseAlert()` and
+  `applySimpleDialogStyle()`
 - Unified button styling via `applyMaterialButton()`
 - CSS pre-warming for instant display
 
 ### SpeleoDBLogger (Logging Layer)
+
 - Thread-safe file logging with automatic rotation (10 MB, 5 backups)
 - UI console integration via `SpeleoDBController.appendToUILog()`
 - Log levels: DEBUG (file only), INFO/WARN/ERROR (file + UI)
@@ -167,4 +174,5 @@ module org.speleodb.ariane.plugin.speleodb {
 }
 ```
 
-The plugin is discovered by the host application via Java's `ServiceLoader` mechanism, using the `provides ... with` directive.
+The plugin is discovered by the host application via Java's `ServiceLoader`
+mechanism, using the `provides ... with` directive.

@@ -121,7 +121,7 @@ public class PluginContainerController implements Initializable {
                                     File surveyFile = plugin.getSurveyFile();
                                     core.mainController.showMessage(
                                         surveyFile != null ? surveyFile.getName() : "(no file)");
-                                
+
                                 });
 
                                 // ========================= AGR COMMANDS ========================= //
@@ -137,7 +137,7 @@ public class PluginContainerController implements Initializable {
                                         core.mainController.showMessage(
                                             agrFile != null ? agrFile.getName() : "(no file)");
                                     });
-                                    pause.play();                                
+                                    pause.play();
                                 });
 
                                 case SAVE_AGR -> Platform.runLater(() -> {
@@ -146,11 +146,11 @@ public class PluginContainerController implements Initializable {
                                     File agrFile = aggregation != null ? aggregation.getFile() : null;
                                     core.mainController.showMessage(
                                         agrFile != null ? agrFile.getName() : "(no file)");
-                                
+
                                 });
 
                                 // ========================= REDRAW COMMANDS ========================= //
-                                
+
                                 case REDRAW -> Platform.runLater(() -> {
                                     core.mainController.showMessage("REDRAW REQUESTED");
                                 });
