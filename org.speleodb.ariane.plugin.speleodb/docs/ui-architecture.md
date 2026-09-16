@@ -16,6 +16,36 @@ The plugin supports two interface modes (via `PluginInterface`):
 - **`LEFT_TAB`**: embedded as a tab in Ariane's left panel (default)
 - **`WINDOW`**: standalone JavaFX `Stage` with its own window
 
+## Project Opening and Creation
+
+After a project loads successfully, the controller expands its project pane and
+collapses the project listing. This applies to downloaded projects and newly
+created projects loaded from the empty TML template. Refreshing the list does
+not change the selected pane.
+
+- **Writable project:** the change description, Save Project, Import local file,
+  and Reload Project controls are enabled. The footer shows the editing lock
+  icon and the existing unlock guidance.
+- **Read-only project:** the same pane stays visible, with all four controls
+  disabled. The footer shows a red forbidden symbol and
+  “Read-only project. You are not allowed to modify this project.” The status
+  remains readable and the project listing remains accessible. This applies
+  both to read-only permissions and to an unsuccessful lock acquisition.
+- **New project:** creation acquires the lock and loads the empty template before
+  selecting the editable project pane and showing the creation success message.
+  The change description starts empty.
+
+`currentProject` continues to represent a project with an acquired editing lock;
+showing a read-only project does not grant a lock or enable upload shortcuts.
+Loading-state updates keep every project action disabled without an active lock.
+
+Automatic redraw still runs for empty surveys. Before firing Ariane's Center
+View action, the controller checks the current survey for data, including after
+the centering delay. Empty surveys therefore do not trigger the host's
+“no data to display” warning through automatic centering. Surveys with data
+retain automatic centering. This controls plugin actions; the host API does not
+provide a switch to disable Ariane's own survey editor.
+
 ## Modal Dialog System (`SpeleoDBModals`)
 
 All user-facing dialogs are centralized in `SpeleoDBModals` to ensure consistent

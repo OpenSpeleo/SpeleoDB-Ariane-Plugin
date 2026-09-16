@@ -58,6 +58,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContentDisplay;
@@ -80,6 +81,7 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.SVGPath;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -149,6 +151,10 @@ public class SpeleoDBController implements Initializable {
     // Removed unlock button; save action is full width in UI
     @FXML
     private Button uploadButton;
+    @FXML
+    private Button importFromDiskButton;
+    @FXML
+    private Button reloadProjectButton;
     @FXML
     private ListView<Button> projectListView;
     @FXML
@@ -306,6 +312,11 @@ public class SpeleoDBController implements Initializable {
         Timeline delay = createTrackedTimeline(
             new KeyFrame(Duration.millis(TIMINGS.CENTER_VIEW_DELAY_MILLIS), e -> {
                 try {
+                    CaveSurveyInterface survey = parentPlugin.getSurvey();
+                    if (survey == null || survey.getSurveyDataInterface() == null
+                            || survey.getSurveyDataInterface().isEmpty()) {
+                        return;
+                    }
                     Button btn = findCenterViewButton();
                     if (btn != null) {
                         btn.fire();
@@ -743,7 +754,7 @@ public class SpeleoDBController implements Initializable {
         // Set prompt text for upload message field
         uploadMessageTextField.setPromptText(DIALOGS.PROMPT_UPLOAD_MESSAGE);
 
-        setupLockedStatusMessage();
+        setupProjectStatusMessage(true);
 
         // ====================== LOG PANE ====================== //
 
@@ -860,12 +871,11 @@ public class SpeleoDBController implements Initializable {
     }
 
     /**
-     * Shows the "locked" status message with icon under the Reload button
-     * inside projectActionsPane.
+     * Shows the editing or read-only status below the project actions.
      */
-    private void setupLockedStatusMessage() {
+    private void setupProjectStatusMessage(boolean hasWriteAccess) {
         if (!Platform.isFxApplicationThread()) {
-            Platform.runLater(this::setupLockedStatusMessage);
+            Platform.runLater(() -> setupProjectStatusMessage(hasWriteAccess));
             return;
         }
 
@@ -874,30 +884,38 @@ public class SpeleoDBController implements Initializable {
                 return;
             }
 
-            javafx.scene.image.ImageView icon = new javafx.scene.image.ImageView(
-                new javafx.scene.image.Image(
-                    Objects.requireNonNull(getClass().getResourceAsStream("/images/icons/survey_locked.png"))
-                )
-            );
-            icon.setPreserveRatio(true);
-            icon.setFitHeight(60.0);
-
-            // Add 30px padding under the icon
-            javafx.scene.layout.VBox.setMargin(icon, new javafx.geometry.Insets(0, 0, 20, 0));
+            Node icon;
+            if (hasWriteAccess) {
+                javafx.scene.image.ImageView lockedIcon = new javafx.scene.image.ImageView(
+                    new javafx.scene.image.Image(
+                        Objects.requireNonNull(getClass().getResourceAsStream(PATHS.PROJECT_LOCKED_ICON))
+                    )
+                );
+                lockedIcon.setPreserveRatio(true);
+                lockedIcon.setFitHeight(DIMENSIONS.PROJECT_STATUS_ICON_SIZE);
+                icon = lockedIcon;
+            } else {
+                SVGPath forbiddenIcon = new SVGPath();
+                forbiddenIcon.setContent(SpeleoDBConstants.ICONS.FORBIDDEN_PATH);
+                forbiddenIcon.setFill(Color.web(STYLES.PROJECT_STATUS_COLOR));
+                forbiddenIcon.setAccessibleText(MESSAGES.PROJECT_READ_ONLY_ICON_DESCRIPTION);
+                icon = forbiddenIcon;
+            }
+            VBox.setMargin(icon, new javafx.geometry.Insets(0, 0, DIMENSIONS.PROJECT_STATUS_ICON_MARGIN, 0));
 
             TextFlow textFlow = new TextFlow();
             textFlow.setMaxWidth(Double.MAX_VALUE);
             textFlow.setTextAlignment(TextAlignment.CENTER);
 
             Text text = new Text(
-                "You are currently editing this project.\nClose Ariane to unlock the project."
+                hasWriteAccess ? MESSAGES.PROJECT_EDITING_STATUS : MESSAGES.PROJECT_READ_ONLY_STATUS
             );
 
-            text.setFill(Color.web("#ff0000"));
-            text.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-fill: #ff0000;");
+            text.setFill(Color.web(STYLES.PROJECT_STATUS_COLOR));
+            text.setStyle(STYLES.PROJECT_STATUS_TEXT);
 
             // Wrap text to container width minus padding
-            text.wrappingWidthProperty().bind(lockStatusBox.widthProperty().subtract(32));
+            text.wrappingWidthProperty().bind(lockStatusBox.widthProperty().subtract(DIMENSIONS.PROJECT_STATUS_TEXT_PADDING));
 
             // Add text to text flow
             textFlow.getChildren().setAll(text);
@@ -1375,14 +1393,7 @@ public class SpeleoDBController implements Initializable {
 
             serverProgressIndicator.setVisible(busy);
 
-            // Project action controls (only disable if they're currently enabled)
-            if (busy) {
-                uploadButton.setDisable(true);
-            } else {
-                // Re-enable based on current project state
-                boolean hasLock = hasActiveProjectLock();
-                uploadButton.setDisable(!hasLock);
-            }
+            setProjectActionsDisabled(busy || !hasActiveProjectLock());
 
             // Connection controls (only if not authenticated)
             if (speleoDBService == null || !speleoDBService.isAuthenticated()) {
@@ -1755,6 +1766,7 @@ public class SpeleoDBController implements Initializable {
             setUILoadingState(true);
 
             parentPlugin.executorService.execute(() -> {
+                boolean loadScheduled = false;
                 try {
                     // Create the project via API
                     JsonObject createdProject = speleoDBService.createProject(
@@ -1780,12 +1792,12 @@ public class SpeleoDBController implements Initializable {
                             String projectId = createdProject.getString("id");
                             Path emptyTmlFile = speleoDBService.createEmptyTmlFileFromTemplate(projectId, projectData.getName());
 
-                            loadProject(createdProject, emptyTmlFile, projectData.getName(), true);
-
-                            Platform.runLater(() -> {
-                                showSuccessAnimation("Project created and locked for editing!");
-                                listProjects();
-                            });
+                            loadProject(createdProject, emptyTmlFile, projectData.getName(), true,
+                                () -> true, () -> {
+                                    showProjectActions(createdProject, true);
+                                    showSuccessAnimation(MESSAGES.PROJECT_CREATED_FOR_EDITING);
+                                });
+                            loadScheduled = true;
 
                         } catch (IOException e) {
                             logger.error("Error setting up new project: " + getSafeErrorMessage(e));
@@ -1815,7 +1827,10 @@ public class SpeleoDBController implements Initializable {
                     });
 
                 } finally {
-                    setUILoadingState(false);
+                    // Once loading starts, its completion callbacks own the busy state.
+                    if (!loadScheduled) {
+                        setUILoadingState(false);
+                    }
                 }
             });
         } else {
@@ -1977,7 +1992,8 @@ public class SpeleoDBController implements Initializable {
     }
 
     private void loadProject(JsonObject project, Path tmlFilepath, String projectName, boolean hasWriteAccess) {
-        loadProject(project, tmlFilepath, projectName, hasWriteAccess, () -> true, () -> {});
+        loadProject(project, tmlFilepath, projectName, hasWriteAccess, () -> true,
+            () -> showProjectActions(project, hasWriteAccess));
     }
 
     private void loadProject(JsonObject project, Path tmlFilepath, String projectName, boolean hasWriteAccess,
@@ -2119,6 +2135,29 @@ public class SpeleoDBController implements Initializable {
         });
     }
 
+    /** Selects the loaded project while keeping lock ownership separate from read-only display. */
+    private void showProjectActions(JsonObject project, boolean hasWriteAccess) {
+        currentProject = hasWriteAccess ? project : null;
+        uploadMessageTextField.clear();
+        projectActionsPane.setText(String.format(MESSAGES.PROJECT_PANE_TITLE, project.getString(JSON_FIELDS.NAME)));
+        projectActionsPane.setVisible(true);
+        projectsListingPane.setExpanded(false);
+        projectActionsPane.setExpanded(true);
+        setProjectActionsDisabled(!hasWriteAccess);
+        setupProjectStatusMessage(hasWriteAccess);
+    }
+
+    private void setProjectActionsDisabled(boolean disabled) {
+        uploadButton.setDisable(disabled);
+        uploadMessageTextField.setDisable(disabled);
+        if (importFromDiskButton != null) {
+            importFromDiskButton.setDisable(disabled);
+        }
+        if (reloadProjectButton != null) {
+            reloadProjectButton.setDisable(disabled);
+        }
+    }
+
     /**
      * Downloads and loads a project with unified logic for both read-only and writable projects.
      *
@@ -2128,28 +2167,6 @@ public class SpeleoDBController implements Initializable {
     private void downloadAndLoadProject(JsonObject project, boolean hasWriteAccess) {
         String projectName = project.getString("name");
 
-        // Update UI based on write access
-        Platform.runLater(() -> {
-
-            // Clear upload message when project is opened
-            uploadMessageTextField.clear();
-
-            if (hasWriteAccess) {
-                // Show actions pane for writable projects
-                projectActionsPane.setVisible(true);
-                projectActionsPane.setExpanded(true);
-                projectActionsPane.setText("Project: `" + projectName + "`.");
-                uploadButton.setDisable(false);
-                currentProject = project;
-            } else {
-                // Hide actions pane for read-only projects
-                projectActionsPane.setVisible(false);
-                projectActionsPane.setExpanded(false);
-                uploadButton.setDisable(true);
-                currentProject = null; // Don't set current project for read-only
-            }
-        });
-
         // Download and load project (same logic for both read-only and writable)
         try {
             // Download project
@@ -2158,7 +2175,6 @@ public class SpeleoDBController implements Initializable {
 
             Platform.runLater(() -> {
                 loadProject(project, tmlFilepath, projectName, hasWriteAccess);
-                setUILoadingState(false);
             });
 
         } catch (IOException | InterruptedException | URISyntaxException e) {

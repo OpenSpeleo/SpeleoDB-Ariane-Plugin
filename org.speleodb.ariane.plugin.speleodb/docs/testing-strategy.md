@@ -46,6 +46,11 @@
 - `SpeleoDBModalsInternalTest`: dialog creation
 - `NewProjectDialogTest` / `NewProjectDialogFXPropertiesTest`: dialog behavior
 - `SpeleoDBReadOnlyPopupTest`: read-only access level handling
+- `SpeleoDBProjectOpeningTest`: real FXML, project-pane selection, disabled
+  read-only actions (permission and lock failure), writable-state restoration,
+  creation from the empty template, and data-aware delayed centering. Uses a
+  mocked service and host LOAD acknowledgement; requires a desktop JavaFX
+  toolkit and is skipped when `CI=true`.
 - `MacOsDialogBehaviorTest`: platform-specific behavior
 - `SuccessGifSuppressionTest`: preference handling
 - `SpeleoDBPreferenceIsolationTest`: TEST_MODE preference node isolation
@@ -162,3 +167,26 @@ over the `API_TEST_ENABLED` environment variable. Build the production JAR in a
 separate Gradle invocation after tests so it contains `TEST_MODE=false`.
 
 See [TML upload integrity](upload-integrity.md) for the real-host smoke checklist.
+
+## Project opening regression checks
+
+Run on a machine with a JavaFX display/toolkit available:
+
+```bash
+./gradlew :org.speleodb.ariane.plugin.speleodb:test --tests '*SpeleoDBProjectOpeningTest'
+```
+
+Manual verification in Ariane (the automated host is mocked):
+
+1. Open a read-only project. Confirm its project pane opens, the description and
+   Save/Import/Reload controls are disabled, and the footer displays the forbidden
+   icon and modification warning. Refresh the list and reopen the pane; actions
+   must remain disabled.
+2. Open a writable project whose lock belongs to another user. Confirm the same
+   disabled project pane, alongside the existing lock-conflict explanation.
+3. Create a project. Confirm the new project's pane opens with an empty change
+   description and enabled actions, and no “no data to display” warning appears
+   after delayed redraws finish.
+4. Switch from read-only to writable mode and back. Confirm both the controls
+   and footer follow access mode. Open a populated survey and confirm automatic
+   centering still works.

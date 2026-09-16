@@ -172,6 +172,7 @@ public final class SpeleoDBConstants {
         public static final String TML_FILE_EXTENSION = ".tml";
         public static final String JAR_FILE_EXTENSION = ".jar";
         public static final String SPELEODB_FXML = "/fxml/SpeleoDB.fxml";
+        public static final String PROJECT_LOCKED_ICON = "/images/icons/survey_locked.png";
         public static final String LOGO_IMAGE = "/images/logo.png";
         public static final String EMPTY_TML = "/tml/empty_project.tml";
         public static final String SUCCESS_GIFS_DIR = "/images/success_gifs/";
@@ -241,6 +242,11 @@ public final class SpeleoDBConstants {
 
     // ==================== UI MESSAGES ====================
     public static final class MESSAGES {
+        public static final String PROJECT_CREATED_FOR_EDITING = "Project created and locked for editing!";
+        public static final String PROJECT_PANE_TITLE = "Project: `%s`.";
+        public static final String PROJECT_EDITING_STATUS = "You are currently editing this project.\nClose Ariane to unlock the project.";
+        public static final String PROJECT_READ_ONLY_STATUS = "Read-only project.\nYou are not allowed to modify this project.";
+        public static final String PROJECT_READ_ONLY_ICON_DESCRIPTION = "Modification forbidden";
         public static final String RELOAD_CONTEXT_CHANGED = "Reload cancelled because the active project, survey, or connection changed.";
         // Error Messages
         public static final String UPLOAD_MESSAGE_EMPTY = "Upload message cannot be empty.";
@@ -356,6 +362,8 @@ public final class SpeleoDBConstants {
     // ==================== UI STYLING ====================
     public static final class STYLES {
         // CSS File Path
+        public static final String PROJECT_STATUS_TEXT = "-fx-font-size: 13px; -fx-font-weight: bold; -fx-fill: #ff0000;";
+        public static final String PROJECT_STATUS_COLOR = "#ff0000";
         public static final String MAIN_CSS_PATH = "/css/fxmlmain.css";
 
         // Material Design Colors
@@ -460,6 +468,10 @@ public final class SpeleoDBConstants {
 
     // ==================== UI DIMENSIONS ====================
     public static final class DIMENSIONS {
+        public static final int PROJECT_STATUS_ICON_SIZE = 60;
+        public static final int PROJECT_STATUS_ICON_MARGIN = 20;
+        public static final int PROJECT_STATUS_TEXT_PADDING = 32;
+
         // Dialog Dimensions
         public static final int DIALOG_MIN_WIDTH = 500;
         public static final int DIALOG_PREF_WIDTH = 500;
@@ -553,6 +565,10 @@ public final class SpeleoDBConstants {
 
     // ==================== UI ICONS & SYMBOLS ====================
     public static final class ICONS {
+        // A 60px circle with a diagonal slash, rendered as a vector for consistent platform support.
+        public static final String FORBIDDEN_PATH = "M30 0 A30 30 0 1 0 30 60 A30 30 0 1 0 30 0 Z "
+            + "M30 6 A24 24 0 1 1 30 54 A24 24 0 1 1 30 6 Z "
+            + "M11 7 L53 49 L49 53 L7 11 Z";
         public static final String SUCCESS_CHECKMARK = "✅ ";
         public static final String ERROR_X = "❌ ";
     }
