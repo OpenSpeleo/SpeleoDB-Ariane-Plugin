@@ -48,9 +48,12 @@
 - `SpeleoDBReadOnlyPopupTest`: read-only access level handling
 - `SpeleoDBProjectOpeningTest`: real FXML, project-pane selection, disabled
   read-only actions (permission and lock failure), writable-state restoration,
-  creation from the empty template, and data-aware delayed centering. Uses a
-  mocked service and host LOAD acknowledgement; requires a desktop JavaFX
-  toolkit and is skipped when `CI=true`.
+  creation from the empty template with zero redraw/centering requests, and data
+  checks before each delayed redraw and centering action. Also verifies
+  populated surveys still redraw twice and surveys emptied during either delay
+  skip the remaining redraws. Uses a mocked service and host LOAD
+  acknowledgement; requires a desktop JavaFX toolkit and is skipped when
+  `CI=true`.
 - `MacOsDialogBehaviorTest`: platform-specific behavior
 - `SuccessGifSuppressionTest`: preference handling
 - `SpeleoDBPreferenceIsolationTest`: TEST_MODE preference node isolation

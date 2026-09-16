@@ -250,6 +250,11 @@ public class SpeleoDBController implements Initializable {
         Timeline delay = createTrackedTimeline(
             new KeyFrame(Duration.millis(delayMillis), e -> {
                 try {
+                    // Ariane's REDRAW handler warns when the survey is empty.
+                    // Check at dispatch time, including the second delayed redraw.
+                    if (!hasSurveyData()) {
+                        return;
+                    }
                     // Need to be executed twice to ensure proper REDRAW
                     parentPlugin.getCommandProperty().set(DataServerCommands.REDRAW.name());
                     // After the final (non-recursive) REDRAW, trigger CENTER VIEW
@@ -267,6 +272,15 @@ public class SpeleoDBController implements Initializable {
             })
         );
         delay.play();
+    }
+
+    private boolean hasSurveyData() {
+        CaveSurveyInterface survey = parentPlugin.getSurvey();
+        if (survey == null) {
+            return false;
+        }
+        var data = survey.getSurveyDataInterface();
+        return data != null && !data.isEmpty();
     }
 
     /**
@@ -312,9 +326,7 @@ public class SpeleoDBController implements Initializable {
         Timeline delay = createTrackedTimeline(
             new KeyFrame(Duration.millis(TIMINGS.CENTER_VIEW_DELAY_MILLIS), e -> {
                 try {
-                    CaveSurveyInterface survey = parentPlugin.getSurvey();
-                    if (survey == null || survey.getSurveyDataInterface() == null
-                            || survey.getSurveyDataInterface().isEmpty()) {
+                    if (!hasSurveyData()) {
                         return;
                     }
                     Button btn = findCenterViewButton();

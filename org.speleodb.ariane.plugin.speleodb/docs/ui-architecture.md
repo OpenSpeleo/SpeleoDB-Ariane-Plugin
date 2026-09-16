@@ -39,12 +39,16 @@ not change the selected pane.
 showing a read-only project does not grant a lock or enable upload shortcuts.
 Loading-state updates keep every project action disabled without an active lock.
 
-Automatic redraw still runs for empty surveys. Before firing Ariane's Center
-View action, the controller checks the current survey for data, including after
-the centering delay. Empty surveys therefore do not trigger the host's
-“no data to display” warning through automatic centering. Surveys with data
-retain automatic centering. This controls plugin actions; the host API does not
-provide a switch to disable Ariane's own survey editor.
+Before sending each delayed REDRAW command or firing Ariane's Center View
+action, the controller checks the current survey for data. Empty surveys skip
+both actions, including when a survey becomes empty during either redraw delay.
+Surveys with data retain the two redraws and automatic centering.
+
+Ariane 26.4.1 routes the plugin's REDRAW command to
+`DisplayToolController.onRedrawMap()`, which shows “No Data to display” when its
+survey data is empty. Guarding only Center View does not prevent this warning;
+each REDRAW dispatch must also be guarded. Loading the empty template and
+selecting the new project's editable pane still proceed normally.
 
 ## Modal Dialog System (`SpeleoDBModals`)
 

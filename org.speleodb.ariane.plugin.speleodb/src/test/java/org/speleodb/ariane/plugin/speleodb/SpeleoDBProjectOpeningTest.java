@@ -86,10 +86,15 @@ class SpeleoDBProjectOpeningTest {
     @BeforeAll
     static void startFx() throws Exception {
         CountDownLatch started = new CountDownLatch(1);
+        Runnable initialize = () -> {
+            // Keep the shared toolkit alive when other tests close their last dialog.
+            Platform.setImplicitExit(false);
+            started.countDown();
+        };
         try {
-            Platform.startup(started::countDown);
+            Platform.startup(initialize);
         } catch (IllegalStateException alreadyStarted) {
-            Platform.runLater(started::countDown);
+            Platform.runLater(initialize);
         }
         assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
     }
@@ -181,7 +186,7 @@ class SpeleoDBProjectOpeningTest {
     }
 
     @Test
-    @DisplayName("Creating an empty project from read-only mode opens editable actions without centering")
+    @DisplayName("Creating an empty project opens editable actions without redraw or centering requests")
     void newProject() throws Exception {
         open(project("READ_ONLY"));
         JsonObject created = project("ADMIN");
@@ -208,7 +213,7 @@ class SpeleoDBProjectOpeningTest {
         });
         awaitAnimations(TIMINGS.REDRAW_DELAY_MILLIS + TIMINGS.REDRAW_DELAY_MILLIS_2
                 + TIMINGS.CENTER_VIEW_DELAY_MILLIS + 300);
-        assertThat(redrawRequests.get()).isGreaterThanOrEqualTo(2);
+        assertThat(redrawRequests.get()).isZero();
         assertThat(centerRequests.get()).isZero();
         verify(service).createEmptyTmlFileFromTemplate(created.getString("id"), "New cave");
     }
@@ -243,6 +248,38 @@ class SpeleoDBProjectOpeningTest {
         });
         awaitAnimations(TIMINGS.CENTER_VIEW_DELAY_MILLIS + 200);
         assertThat(centerRequests.get()).isEqualTo(mode.equals("populated") ? 1 : 0);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"populated", "empty", "nullSurvey", "nullData", "emptiedBeforeFirst", "emptiedBeforeSecond"})
+    @DisplayName("Each delayed redraw checks for data before asking Ariane to render")
+    void redrawOnlyWithData(String mode) throws Exception {
+        CaveSurveyInterface data = emptySurvey();
+        if (mode.equals("populated") || mode.startsWith("emptiedBefore")) {
+            when(data.getSurveyDataInterface()).thenReturn(new ArrayList<>(List.of(mock(SurveyDataInterface.class))));
+        } else if (mode.equals("nullData")) {
+            when(data.getSurveyDataInterface()).thenReturn(null);
+        }
+        survey.set(mode.equals("nullSurvey") ? null : data);
+        onFx(() -> {
+            if (mode.equals("emptiedBeforeSecond")) {
+                plugin.getCommandProperty().addListener((property, before, after) -> {
+                    // The host acknowledges REDRAW by setting DONE inside its listener.
+                    if (redrawRequests.get() == 1) {
+                        survey.set(emptySurvey());
+                    }
+                });
+            }
+            invoke("scheduleRedrawAfterMillis", new Class<?>[] {long.class, boolean.class}, 1L, true);
+            if (mode.equals("emptiedBeforeFirst")) survey.set(emptySurvey());
+        });
+        awaitAnimations(TIMINGS.REDRAW_DELAY_MILLIS_2 + TIMINGS.CENTER_VIEW_DELAY_MILLIS + 300);
+        assertThat(redrawRequests.get()).isEqualTo(switch (mode) {
+            case "populated" -> 2;
+            case "emptiedBeforeSecond" -> 1;
+            default -> 0;
+        });
+        assertThat(centerRequests.get()).isEqualTo(mode.equals("populated") ? 2 : 0);
     }
 
     private void open(JsonObject project) throws Exception {
