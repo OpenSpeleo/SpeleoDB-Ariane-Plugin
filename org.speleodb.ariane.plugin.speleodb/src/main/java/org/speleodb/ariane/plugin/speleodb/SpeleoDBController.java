@@ -1977,11 +1977,11 @@ public class SpeleoDBController implements Initializable {
     }
 
     private void loadProject(JsonObject project, Path tmlFilepath, String projectName, boolean hasWriteAccess) {
-        loadProject(project, tmlFilepath, projectName, hasWriteAccess, () -> true);
+        loadProject(project, tmlFilepath, projectName, hasWriteAccess, () -> true, () -> {});
     }
 
     private void loadProject(JsonObject project, Path tmlFilepath, String projectName, boolean hasWriteAccess,
-            BooleanSupplier contextValid) {
+            BooleanSupplier contextValid, Runnable onLoaded) {
         if (Files.exists(tmlFilepath)) {
             // Load the project asynchronously to keep UI responsive
             String loadingMessage = hasWriteAccess ? "Loading project file ..." : "Loading read-only project file...";
@@ -1996,6 +1996,7 @@ public class SpeleoDBController implements Initializable {
                             "Project loaded successfully: " + projectName :
                             "Read-only project loaded successfully: " + projectName;
                         logger.info(successMessage);
+                        onLoaded.run();
 
                         // Update UI first, then do background tasks
                         setUILoadingState(false);
@@ -2406,34 +2407,44 @@ public class SpeleoDBController implements Initializable {
 
         setUILoadingState(true);
 
-        parentPlugin.executorService.execute(() -> {
-            try {
-                if (!projectContextValid(project, generation, survey)
-                        || !Objects.equals(parentPlugin.getSurveyFile(), activeSource)) {
-                    return;
+        try {
+            parentPlugin.executorService.execute(() -> {
+                try {
+                    if (!projectContextValid(project, generation, survey)
+                            || !Objects.equals(parentPlugin.getSurveyFile(), activeSource)) {
+                        setUILoadingState(false);
+                        return;
+                    }
+                    logger.info("Reloading project from disk: " + projectName);
+
+                    // After handoff, loadProject's completion callbacks own loading cleanup.
+                    loadProject(project, tmlFilePath, projectName, true,
+                            () -> projectContextValid(project, generation, survey)
+                                    && Objects.equals(parentPlugin.getSurveyFile(), activeSource),
+                            () -> {
+                                if (!shutdownInProgress && generation == speleoDBService.sessionGeneration()
+                                        && Objects.equals(currentProject, project)
+                                        && Objects.equals(parentPlugin.getSurveyFile(), tmlFilePath.toFile())) {
+                                    uploadMessageTextField.clear();
+                                }
+                            });
+                } catch (Exception e) {
+                    handleReloadFailure(e);
                 }
-                logger.info("Reloading project from disk: " + projectName);
+            });
+        } catch (Exception e) {
+            handleReloadFailure(e);
+        }
+    }
 
-                loadProject(project, tmlFilePath, projectName, true,
-                        () -> projectContextValid(project, generation, survey)
-                                && Objects.equals(parentPlugin.getSurveyFile(), activeSource));
-
-                Platform.runLater(() -> {
-                    uploadMessageTextField.clear();
-                });
-                logger.info("Project reloaded successfully: " + projectName);
-
-            } catch (Exception e) {
-                String errorMessage = "Error during project reload: " + getSafeErrorMessage(e);
-                logger.error(errorMessage);
-                Platform.runLater(() -> {
-                    showErrorAnimation("Reload error");
-                    SpeleoDBModals.showError("Reload Error", "An unexpected error occurred during reload.\n\nError: " + getSafeErrorMessage(e));
-                });
-            } finally {
-                setUILoadingState(false);
-            }
+    private void handleReloadFailure(Exception error) {
+        logger.error("Error during project reload: " + getSafeErrorMessage(error));
+        Platform.runLater(() -> {
+            showErrorAnimation("Reload error");
+            SpeleoDBModals.showError("Reload Error",
+                    "An unexpected error occurred during reload.\n\nError: " + getSafeErrorMessage(error));
         });
+        setUILoadingState(false);
     }
 
     /**

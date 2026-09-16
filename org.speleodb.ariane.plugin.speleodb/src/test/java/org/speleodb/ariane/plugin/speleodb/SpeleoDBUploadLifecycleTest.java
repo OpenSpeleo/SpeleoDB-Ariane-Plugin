@@ -302,6 +302,96 @@ class SpeleoDBUploadLifecycleTest {
         verify(plugin, times(0)).setSurveyFile(any());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"pending", "rejected", "loaded", "staleSuccess", "outerRejected", "innerRejected"})
+    @org.junit.jupiter.api.condition.DisabledIfEnvironmentVariable(named = "CI", matches = "true",
+            disabledReason = "UI state assertions require a desktop JavaFX toolkit")
+    @DisplayName("Reload retains message and loading state until confirmed completion, including rejection cleanup")
+    void reloadCompletionOwnsUiState(String mode) throws Exception {
+        CountDownLatch started = new CountDownLatch(1);
+        try {
+            Platform.startup(started::countDown);
+        } catch (IllegalStateException alreadyStarted) {
+            Platform.runLater(started::countDown);
+        }
+        assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
+        var message = new javafx.scene.control.TextField("pending commit");
+        var actions = new javafx.scene.control.TitledPane();
+        set("uploadMessageTextField", message);
+        set("projectActionsPane", actions);
+        set("projectsListingPane", new javafx.scene.control.TitledPane());
+        set("serverProgressIndicator", new javafx.scene.control.ProgressIndicator());
+        set("projectListView", new javafx.scene.control.ListView<>());
+        for (String field : new String[] {"uploadButton", "createNewProjectButton", "refreshProjectsButton",
+                "sortByNameButton", "sortByDateButton"}) {
+            set(field, new javafx.scene.control.Button());
+        }
+        when(service.isAuthenticated()).thenReturn(true);
+        Path source = Files.write(root.resolve("reload.tml"), TestFixtures.createZipBytes(
+                java.util.zip.ZipEntry.STORED, "Data.xml"));
+        var survey = new java.util.concurrent.atomic.AtomicReference<>(mock(CaveSurveyInterface.class));
+        when(plugin.getSurvey()).thenAnswer(call -> survey.get());
+        doAnswer(call -> { survey.set(call.getArgument(0)); return null; }).when(plugin).setSurvey(any());
+        when(plugin.getSurveyFile()).thenReturn(source.toFile());
+        var command = new SimpleStringProperty();
+        command.addListener((property, before, after) -> {
+            if (after.equals("LOAD")) {
+                survey.set(mock(CaveSurveyInterface.class));
+            }
+        });
+        when(plugin.getCommandProperty()).thenReturn(command);
+        var queuedFx = new java.util.ArrayDeque<Runnable>();
+        AtomicBoolean dispatchInline = new AtomicBoolean();
+        try (var fx = mockStatic(Platform.class); var modals = mockStatic(SpeleoDBModals.class);
+                var tooltips = mockStatic(SpeleoDBTooltips.class)) {
+            fx.when(() -> Platform.runLater(any())).thenAnswer(call -> {
+                Runnable action = call.getArgument(0);
+                if (dispatchInline.compareAndSet(true, false)) {
+                    action.run();
+                } else {
+                    queuedFx.add(action);
+                }
+                return null;
+            });
+            modals.when(() -> SpeleoDBModals.showConfirmation(anyString(), anyString(), anyString(), anyString()))
+                    .thenReturn(true);
+            if (mode.equals("outerRejected")) {
+                doThrow(new RejectedExecutionException()).when(executor).execute(any());
+            }
+            controller.onReloadProject(null);
+            queuedFx.removeFirst().run(); // Initial busy state.
+            assertThat(actions.isDisable()).isTrue();
+            if (!mode.equals("outerRejected")) {
+                if (mode.equals("innerRejected")) {
+                    doThrow(new RejectedExecutionException()).when(executor).execute(any());
+                }
+                workers.getFirst().run();
+            }
+            assertThat(message.getText()).isEqualTo("pending commit");
+            assertThat(actions.isDisable()).isTrue();
+            if (mode.equals("pending")) {
+                // Scheduling a load must have no completion side effects on FX.
+                assertThat(queuedFx).isEmpty();
+                return;
+            }
+            if (!mode.endsWith("Rejected")) {
+                if (mode.equals("rejected")) {
+                    set("currentProject", Json.createObjectBuilder().add("id", "other").build());
+                }
+                dispatchInline.set(true);
+                workers.get(1).run();
+                if (mode.equals("staleSuccess")) {
+                    set("currentProject", Json.createObjectBuilder().add("id", "other").build());
+                }
+            }
+            queuedFx.removeFirst().run(); // Actual success/error callback.
+            queuedFx.removeFirst().run(); // Completion releases busy state.
+            assertThat(actions.isDisable()).isFalse();
+            assertThat(message.getText()).isEqualTo(mode.equals("loaded") ? "" : "pending commit");
+            assertThat(command.get()).isEqualTo(mode.equals("loaded") || mode.equals("staleSuccess") ? "LOAD" : null);
+        }
+    }
+
     @Test
     @DisplayName("An interrupted worker cancels queued save dispatch and preserves interruption")
     void interruptedSave() throws Exception {

@@ -84,7 +84,10 @@ does not revert to the older canonical project file after a successful upload.
 The canonical path is a fallback only when no active path is set; a missing active
 file produces an error. Reload captures the project/session/survey context and
 rechecks it immediately before the FX LOAD command. Loading completion is polled
-only after FX dispatch succeeds, so a rejected queued load cannot report success.
+only after FX dispatch succeeds. Reload retains its commit message and keeps controls
+disabled until completion; rejected dispatch and executor failures release controls
+without clearing the message. Success clears the message only if the same project,
+session, and source are still active when the FX completion callback runs.
 
 ## Verification and troubleshooting
 
