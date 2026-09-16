@@ -1,6 +1,6 @@
 # Changelog
 
-The most important FrameForge product updates are listed here. This is a
+The most important SpeleoDB Ariane Plugin updates are listed here. This is a
 curated, high-level release history; routine maintenance and implementation
 details are intentionally omitted.
 
@@ -10,9 +10,15 @@ details are intentionally omitted.
 
 ### UI/UX
 
+- Read-only projects now open their project tab with disabled actions, a forbidden icon, and a clear modification warning. `7dc5b9e`
+
 ### Performance
 
 ### Fixes
+
+- Prevent intermittent upload failures caused by incomplete survey files. `32e49b6`
+- Project reloads keep controls disabled until loading finishes and preserve your change description if loading fails. `648fd68`
+- New projects now open their project tab without the misleading “no data to display” warning. `7dc5b9e`
 
 ## v2026.04.19
 
@@ -128,5 +134,4 @@ details are intentionally omitted.
 
 ## v2026.08.13
 **Ariane - Initial Release 25.2.2 - First official release**
-
 
