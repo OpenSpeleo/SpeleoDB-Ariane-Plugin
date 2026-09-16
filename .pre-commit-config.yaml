@@ -1,0 +1,66 @@
+---
+repos:
+  # -------------------------
+  # Generic sanity checks
+  # -------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        # Unified source patches need their context-line whitespace intact.
+        exclude: >-
+          ^tests/fixtures/|^scripts/gstreamer/recipes/.*\.patch$
+      - id: end-of-file-fixer
+        exclude: ^tests/fixtures/
+      - id: check-json
+        # tsconfig*.json files are JSONC (allow comments/trailing commas);
+        # the strict JSON parser used here cannot read them. TypeScript itself
+        # validates them.
+        exclude: tsconfig.json
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: debug-statements
+      - id: check-builtin-literals
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: detect-private-key
+
+  # -------------------------
+  # Markdown formatting
+  # -------------------------
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.9.6
+    hooks:
+      - id: prettier
+        name: prettier markdown
+        types_or: [markdown]
+        args: [--prose-wrap=always]
+
+  # -------------------------
+  # CI formatting
+  # -------------------------
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+
+  - repo: local
+    hooks:
+      - id: java-lint
+        name: Java type checking and Error Prone
+        language: system
+        entry: >-
+          bash -c 'repoRoot=$(git rev-parse --show-toplevel) &&
+          exec "$repoRoot/gradlew" -p "$repoRoot" --console=plain
+          :org.speleodb.ariane.plugin.speleodb:javaLint'
+        files: >-
+          (?x)(\.java$|\.gradle(\.kts)?$|(^|/)gradle\.properties$|
+          ^gradle/|^gradlew(\.bat)?$|(^|/)\.pre-commit-config\.yaml$)
+        pass_filenames: false
+        require_serial: true

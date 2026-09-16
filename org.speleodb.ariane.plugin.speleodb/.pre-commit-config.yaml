@@ -1,3 +1,4 @@
+---
 exclude: "^bin/"
 
 # default_language_version:
@@ -12,12 +13,28 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
-        # exclude: ^org.speleodb.ariane.plugin.speleodb/src/main/resources
+      # exclude: ^org.speleodb.ariane.plugin.speleodb/src/main/resources
       - id: end-of-file-fixer
-        # exclude: ^org.speleodb.ariane.plugin.speleodb/src/main/resources
+      # exclude: ^org.speleodb.ariane.plugin.speleodb/src/main/resources
       - id: check-json
       - id: check-toml
       - id: check-xml
       - id: check-yaml
       - id: check-case-conflict
       - id: detect-private-key
+
+  # Resolve the root explicitly for runners launched from this module.
+  - repo: local
+    hooks:
+      - id: java-lint
+        name: Java type checking and Error Prone
+        language: system
+        entry: >-
+          bash -c 'repoRoot=$(git rev-parse --show-toplevel) &&
+          exec "$repoRoot/gradlew" -p "$repoRoot" --console=plain
+          :org.speleodb.ariane.plugin.speleodb:javaLint'
+        files: >-
+          (?x)(\.java$|\.gradle(\.kts)?$|(^|/)gradle\.properties$|
+          ^gradle/|^gradlew(\.bat)?$|(^|/)\.pre-commit-config\.yaml$)
+        pass_filenames: false
+        require_serial: true

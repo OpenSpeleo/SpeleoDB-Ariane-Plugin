@@ -85,16 +85,16 @@ Responses:
 - `200 OK`: upload successful
 - `304 Not Modified`: no changes detected (raises `NotModifiedException`)
 
-Both service upload entry points capture a private snapshot and reject invalid ZIPs
-before sending HTTP. Validation checks the central directory, local entries,
-explicit CRC32 values and sizes, duplicate names, and supported compression.
-The 150 MiB compressed-size cap is checked before and during capture. The
-empty-template SHA-256 check and multipart artifact use the same frozen bytes;
-validation/read failures never fall through to HTTP.
+Both service upload entry points capture a private snapshot and reject invalid
+ZIPs before sending HTTP. Validation checks the central directory, local
+entries, explicit CRC32 values and sizes, duplicate names, and supported
+compression. The 150 MiB compressed-size cap is checked before and during
+capture. The empty-template SHA-256 check and multipart artifact use the same
+frozen bytes; validation/read failures never fall through to HTTP.
 
 The overload `uploadProject(message, project, sourcePath)` accepts an explicit
-source. The original two-argument method retains the canonical project path.
-See [TML upload integrity](upload-integrity.md) for retry and freshness behavior.
+source. The original two-argument method retains the canonical project path. See
+[TML upload integrity](upload-integrity.md) for retry and freshness behavior.
 
 ### Project Download
 

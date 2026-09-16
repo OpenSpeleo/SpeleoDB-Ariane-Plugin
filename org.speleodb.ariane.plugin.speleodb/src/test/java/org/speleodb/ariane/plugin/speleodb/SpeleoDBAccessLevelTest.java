@@ -81,6 +81,7 @@ class SpeleoDBAccessLevelTest {
 
         @Test
         @DisplayName("Should support compareTo operation")
+        @SuppressWarnings("SelfComparison") // Intentionally verifies compareTo's reflexive case.
         void shouldSupportCompareToOperation() {
             assertThat(SpeleoDBConstants.AccessLevel.ADMIN.compareTo(SpeleoDBConstants.AccessLevel.READ_ONLY))
                 .isLessThan(0);

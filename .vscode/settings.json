@@ -14,7 +14,7 @@
     "java.project.referencedLibraries": [
         "lib/**/*.jar",
         "**/lib/*.jar",
-        "**/build/libs/*.jar",
+        "**/build/libs/*.jar"
     ],
     "java.clean.workspace": false
 }

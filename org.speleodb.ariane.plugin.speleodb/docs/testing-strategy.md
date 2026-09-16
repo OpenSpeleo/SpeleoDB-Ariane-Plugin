@@ -17,10 +17,13 @@
   version string handling
 - `SpeleoDBAccessLevelTest`: enum parsing
 - `HTTPRequestMultipartBodyTest`: multipart encoding
-- `TmlUploadPreparerTest`: frozen snapshot validation, explicit CRC32/size checks,
-  delayed ZIP finalization, capture races, size limits, cancellation, and cleanup
-- `SpeleoDBSaveDispatchTest`: single FX-dispatched save action and command rearming
-- `SpeleoDBUploadLifecycleTest`: overlapping requests, context changes, and cleanup
+- `TmlUploadPreparerTest`: frozen snapshot validation, explicit CRC32/size
+  checks, delayed ZIP finalization, capture races, size limits, cancellation,
+  and cleanup
+- `SpeleoDBSaveDispatchTest`: single FX-dispatched save action and command
+  rearming
+- `SpeleoDBUploadLifecycleTest`: overlapping requests, context changes, and
+  cleanup
 - `SpeleoDBHostnameHandlingTest`: URL normalization
 - `SpeleoDBServiceSimpleTest` / `SpeleoDBServiceAdvancedTest`: service logic
 - `SpeleoDBServiceTest`: authentication, URL handling, JSON parsing, file
@@ -65,7 +68,8 @@
 - `SpeleoDBProjectCreateApiTest`: project creation request shape and unwrapped
   201 response contract
 - `SpeleoDBProjectListApiTest`: unwrapped list contract and project filtering
-- `SpeleoDBProjectUploadApiTest`: upload multipart/error handling using valid ZIPs
+- `SpeleoDBProjectUploadApiTest`: upload multipart/error handling using valid
+  ZIPs
 - `TmlUploadBoundaryTest`: Java-only validation of captured binary multipart
   artifacts, byte/hash identity after live-file mutation, and zero HTTP requests
   for rejected inputs
@@ -165,11 +169,13 @@ No Python interoperability dependency is used. Received ZIPs are checked in Java
 with `ZipFile`, explicit CRC32/size assertions, and `ZipInputStream`.
 
 For offline full-suite checks, explicitly exclude `SpeleoDBAPITest` through a
-Gradle test filter if the local `.env` enables live tests: `.env` takes precedence
-over the `API_TEST_ENABLED` environment variable. Build the production JAR in a
-separate Gradle invocation after tests so it contains `TEST_MODE=false`.
+Gradle test filter if the local `.env` enables live tests: `.env` takes
+precedence over the `API_TEST_ENABLED` environment variable. Build the
+production JAR in a separate Gradle invocation after tests so it contains
+`TEST_MODE=false`.
 
-See [TML upload integrity](upload-integrity.md) for the real-host smoke checklist.
+See [TML upload integrity](upload-integrity.md) for the real-host smoke
+checklist.
 
 ## Project opening regression checks
 
@@ -182,9 +188,9 @@ Run on a machine with a JavaFX display/toolkit available:
 Manual verification in Ariane (the automated host is mocked):
 
 1. Open a read-only project. Confirm its project pane opens, the description and
-   Save/Import/Reload controls are disabled, and the footer displays the forbidden
-   icon and modification warning. Refresh the list and reopen the pane; actions
-   must remain disabled.
+   Save/Import/Reload controls are disabled, and the footer displays the
+   forbidden icon and modification warning. Refresh the list and reopen the
+   pane; actions must remain disabled.
 2. Open a writable project whose lock belongs to another user. Confirm the same
    disabled project pane, alongside the existing lock-conflict explanation.
 3. Create a project. Confirm the new project's pane opens with an empty change

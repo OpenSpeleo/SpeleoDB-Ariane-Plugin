@@ -27,13 +27,13 @@ not change the selected pane.
   and Reload Project controls are enabled. The footer shows the editing lock
   icon and the existing unlock guidance.
 - **Read-only project:** the same pane stays visible, with all four controls
-  disabled. The footer shows a red forbidden symbol and
-  “Read-only project. You are not allowed to modify this project.” The status
-  remains readable and the project listing remains accessible. This applies
-  both to read-only permissions and to an unsuccessful lock acquisition.
-- **New project:** creation acquires the lock and loads the empty template before
-  selecting the editable project pane and showing the creation success message.
-  The change description starts empty.
+  disabled. The footer shows a red forbidden symbol and “Read-only project. You
+  are not allowed to modify this project.” The status remains readable and the
+  project listing remains accessible. This applies both to read-only permissions
+  and to an unsuccessful lock acquisition.
+- **New project:** creation acquires the lock and loads the empty template
+  before selecting the editable project pane and showing the creation success
+  message. The change description starts empty.
 
 `currentProject` continues to represent a project with an acquired editing lock;
 showing a read-only project does not grant a lock or enable upload shortcuts.

@@ -1,6 +1,7 @@
 plugins {
     id 'java-library'
     id 'jacoco'
+    id 'net.ltgt.errorprone' version '5.1.1'
     id 'org.owasp.dependencycheck' version '11.1.1'
 }
 
@@ -15,6 +16,7 @@ ext.calVerVersion = new Date().format('yyyy.MM.dd')
 // `subprojects {}` block so all submodules stay in lockstep. Don't redeclare here.
 
 dependencies {
+    errorprone 'com.google.errorprone:error_prone_core:2.50.0'
     api project(':com.arianesline.cavelib.api')
     api project(':com.arianesline.ariane.plugin.api')
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.2")
@@ -41,6 +43,51 @@ dependencies {
 
     // Hermetic HTTP server for WireMock-based service tests (test scope only).
     testImplementation "org.wiremock:wiremock-standalone:${providers.gradleProperty('wiremockVersion').get()}"
+}
+
+// Lint into separate outputs: release compilation generates VERSION in source.
+// Keeping lint independent also prevents unstamped classes entering release JARs.
+tasks.named('compileJava') {
+    options.errorprone.enabled = false
+}
+tasks.named('compileTestJava') {
+    options.errorprone.enabled = false
+}
+
+def javaLintMain = tasks.register('javaLintMain', JavaCompile) {
+    description = 'Type-checks production sources and runs Error Prone.'
+    source = sourceSets.main.java
+    classpath = sourceSets.main.compileClasspath
+    destinationDirectory = layout.buildDirectory.dir('classes/javaLint/main')
+    javaCompiler = javaToolchains.compilerFor(java.toolchain)
+    options.annotationProcessorPath = configurations.annotationProcessor
+    options.encoding = 'UTF-8'
+    options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-processing', '-Xlint:-serial'])
+    options.errorprone.enabled = true
+}
+
+def javaLintTest = tasks.register('javaLintTest', JavaCompile) {
+    description = 'Type-checks test sources and runs Error Prone without running tests.'
+    source = sourceSets.test.java
+    // Use lint's main classes, avoiding the normal compileJava task dependency.
+    classpath = configurations.testCompileClasspath + files(javaLintMain.flatMap { it.destinationDirectory })
+    destinationDirectory = layout.buildDirectory.dir('classes/javaLint/test')
+    javaCompiler = javaToolchains.compilerFor(java.toolchain)
+    options.annotationProcessorPath = configurations.testAnnotationProcessor
+    options.encoding = 'UTF-8'
+    options.compilerArgs.addAll(['-Xlint:all', '-Xlint:-processing', '-Xlint:-serial'])
+    options.errorprone.enabled = true
+    options.errorprone.compilingTestOnlyCode = true
+}
+
+tasks.register('javaLint') {
+    group = 'verification'
+    description = 'Type-checks production and test sources and runs Error Prone.'
+    dependsOn javaLintMain, javaLintTest
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('javaLint')
 }
 
 // JaCoCo coverage report runs after :test and writes to build/reports/jacoco/

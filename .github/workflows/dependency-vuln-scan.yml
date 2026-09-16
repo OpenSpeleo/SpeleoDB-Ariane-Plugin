@@ -1,3 +1,4 @@
+---
 name: OWASP dependency-check (nightly)
 
 # Runs OWASP dependency-check against the plugin module's runtime/test deps.
@@ -47,10 +48,12 @@ jobs:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           if [ -n "$NVD_API_KEY" ]; then
-            ./gradlew :org.speleodb.ariane.plugin.speleodb:dependencyCheckAnalyze \
+            ./gradlew \
+                :org.speleodb.ariane.plugin.speleodb:dependencyCheckAnalyze \
                 -PnvdApiKey="$NVD_API_KEY"
           else
-            ./gradlew :org.speleodb.ariane.plugin.speleodb:dependencyCheckAnalyze
+            ./gradlew \
+                :org.speleodb.ariane.plugin.speleodb:dependencyCheckAnalyze
           fi
 
       - name: Upload dependency-check report
@@ -58,5 +61,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
-          path: org.speleodb.ariane.plugin.speleodb/build/reports/dependency-check-report.*
+          path: >-
+            org.speleodb.ariane.plugin.speleodb/build/reports/dependency-check-report.*
           if-no-files-found: warn

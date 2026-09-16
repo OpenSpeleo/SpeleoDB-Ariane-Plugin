@@ -1,3 +1,4 @@
+---
 name: Java CI with Gradle
 
 on:
@@ -6,8 +7,8 @@ on:
   pull_request:
     branches: ["master"]
 
-# Cancel in-progress runs on the same ref when a new push lands.
-# This is run-cancellation only -- it does NOT introduce parallel test execution.
+# Cancel in-progress runs on the same ref when a new push lands. This is
+# run-cancellation only -- it does NOT introduce parallel test execution.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -17,7 +18,7 @@ permissions:
 
 jobs:
   lint:
-    name: pre-commit lint
+    name: prek lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -35,25 +36,18 @@ jobs:
         env:
           UV_VENV_SEED: 1
 
-      - name: Install pre-commit
-        run: uv pip install pre-commit
+      - name: Install prek
+        run: uv pip install prek
 
-      - name: Run pre-commit (root + plugin module)
-        run: |
-          if [ -f .pre-commit-config.yaml ]; then
-            pre-commit run --all-files --show-diff-on-failure
-          fi
-          if [ -f org.speleodb.ariane.plugin.speleodb/.pre-commit-config.yaml ]; then
-            cd org.speleodb.ariane.plugin.speleodb
-            pre-commit run --all-files --show-diff-on-failure
-          fi
+      - name: Run prek (root + plugin module)
+        run: prek run --all-files --show-diff-on-failure
 
   build-and-test:
     name: build + test (Ubuntu, JDK 25)
     runs-on: ubuntu-latest
-    # Hard cap so a stuck test (live API call hanging on a slow/unreachable stage,
-    # FX runLater never draining, etc.) cannot consume the default 6h job timeout.
-    # Healthy run is ~5 min; 30 gives plenty of slack for cold caches.
+    # Hard cap so a stuck test (live API call hanging on a slow/unreachable
+    # stage, FX runLater never draining, etc.) cannot consume the default 6h job
+    # timeout. Healthy run is ~5 min; 30 gives plenty of slack for cold caches.
     timeout-minutes: 30
     # Least-privilege: read-only token. JUnit XML is published as a downloadable
     # artifact instead of comment/check posts on PRs (which would require
@@ -62,7 +56,8 @@ jobs:
       contents: read
     env:
       # Live API tests (SpeleoDBAPITest) read these via TestEnvironmentConfig's
-      # env-var fallback. When the secrets are unset, those tests skip gracefully.
+      # env-var fallback. When the secrets are unset, those tests skip
+      # gracefully.
       SPELEODB_INSTANCE_URL: ${{ secrets.SPELEODB_INSTANCE_URL }}
       SPELEODB_OAUTH_TOKEN: ${{ secrets.SPELEODB_OAUTH_TOKEN }}
       SPELEODB_EMAIL: ${{ secrets.SPELEODB_EMAIL }}
@@ -90,51 +85,60 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Run plugin tests (:org.speleodb.ariane.plugin.speleodb:test)
-        # MUST run before `:build` so the JAR uploaded as the `plugin-jar` artifact
-        # is built from clean source (TEST_MODE=false). `:test` mutates the source
-        # via the `enableTestMode` Gradle task; the FlowAction resets it after the
-        # test JVM exits, so the subsequent `:build` step packages a production
-        # JAR. Reversing this order would publish a JAR with TEST_MODE=true baked
-        # in -- usable for smoke discovery but wrong for any other consumer.
+        # MUST run before `:build` so the JAR uploaded as the `plugin-jar`
+        # artifact is built from clean source (TEST_MODE=false). `:test` mutates
+        # the source via the `enableTestMode` Gradle task; the FlowAction resets
+        # it after the test JVM exits, so the subsequent `:build` step packages
+        # a production JAR. Reversing this order would publish a JAR with
+        # TEST_MODE=true baked in -- usable for smoke discovery but wrong for
+        # any other consumer.
         run: ./gradlew :org.speleodb.ariane.plugin.speleodb:test
 
       - name: Build plugin (:org.speleodb.ariane.plugin.speleodb:build)
         # `:build` is overridden to `setDependsOn([assemble])` so this is just
-        # `:assemble`: produces the CalVer-stamped, TEST_MODE=false production JAR
-        # that gets uploaded as the `plugin-jar` artifact below.
+        # `:assemble`: produces the CalVer-stamped, TEST_MODE=false production
+        # JAR that gets uploaded as the `plugin-jar` artifact below.
         run: ./gradlew :org.speleodb.ariane.plugin.speleodb:build
 
       - name: Verify SpeleoDBConstants.java was reset by the FlowAction
-        # Regression guard for settings.gradle's post-build FlowAction (TEST_MODE=false,
-        # VERSION=null). If this fails, Gradle 9.x / JDK 25 broke the FlowAction and the
-        # repo would otherwise commit dirty constants on the next git add -A.
+        # Regression guard for settings.gradle's post-build FlowAction
+        # (TEST_MODE=false, VERSION=null). If this fails, Gradle 9.x / JDK 25
+        # broke the FlowAction and the repo would otherwise commit dirty
+        # constants on the next git add -A.
         #
-        # The file lives in a submodule, so `git status` must run from inside the
-        # submodule -- a parent-repo `git status -- <path>` never reaches into the
-        # submodule's working tree and would silently report "clean" no matter what.
+        # The file lives in a submodule, so `git status` must run from inside
+        # the submodule -- a parent-repo `git status -- <path>` never reaches
+        # into the submodule's working tree and would silently report "clean" no
+        # matter what.
         run: |
           set -eo pipefail
-          CONST=src/main/java/org/speleodb/ariane/plugin/speleodb/SpeleoDBConstants.java
+          CONST=src/main/java/org/speleodb/ariane/plugin/speleodb
+          CONST="$CONST/SpeleoDBConstants.java"
           cd org.speleodb.ariane.plugin.speleodb
           DIRTY=$(git status --porcelain -- "$CONST")
           if [ -n "$DIRTY" ]; then
-            echo "::error::SpeleoDBConstants.java is dirty after build -- post-build FlowAction did not reset TEST_MODE/VERSION"
+            echo "::error::SpeleoDBConstants.java is dirty after build --" \
+              "post-build FlowAction did not reset TEST_MODE/VERSION"
             git --no-pager diff -- "$CONST"
             exit 1
           fi
-          # Belt-and-suspenders: read the file directly in case the submodule was
-          # checked out detached and `git status` somehow misses content drift.
-          if ! grep -qE 'public static final boolean TEST_MODE = false;' "$CONST"; then
+          # Belt-and-suspenders: read the file directly in case the submodule
+          # was checked out detached and `git status` somehow misses content
+          # drift.
+          if ! grep -qE 'public static final boolean TEST_MODE = false;' \
+            "$CONST"; then
             echo "::error::TEST_MODE was not reset to false in $CONST"
             grep 'TEST_MODE' "$CONST" || true
             exit 1
           fi
-          if ! grep -qE 'public static final String VERSION = null;' "$CONST"; then
+          if ! grep -qE 'public static final String VERSION = null;' \
+            "$CONST"; then
             echo "::error::VERSION was not reset to null in $CONST"
             grep 'public static final String VERSION' "$CONST" || true
             exit 1
           fi
-          echo "OK: SpeleoDBConstants.java was reset to TEST_MODE=false / VERSION=null"
+          echo "OK: SpeleoDBConstants.java was reset to" \
+            "TEST_MODE=false / VERSION=null"
 
       - name: Upload plugin JAR
         uses: actions/upload-artifact@v4
@@ -171,14 +175,14 @@ jobs:
           ./gradlew clean :org.speleodb.ariane.plugin.speleodb:assemble
           mkdir -p /tmp/jar-1
           cp org.speleodb.ariane.plugin.speleodb/build/libs/*.jar /tmp/jar-1/
-          (cd /tmp/jar-1 && sha256sum *.jar > sums.txt && cat sums.txt)
+          (cd /tmp/jar-1 && sha256sum ./*.jar > sums.txt && cat sums.txt)
 
       - name: Second build
         run: |
           ./gradlew clean :org.speleodb.ariane.plugin.speleodb:assemble
           mkdir -p /tmp/jar-2
           cp org.speleodb.ariane.plugin.speleodb/build/libs/*.jar /tmp/jar-2/
-          (cd /tmp/jar-2 && sha256sum *.jar > sums.txt && cat sums.txt)
+          (cd /tmp/jar-2 && sha256sum ./*.jar > sums.txt && cat sums.txt)
 
       - name: Compare hashes
         run: |
