@@ -18,7 +18,7 @@ details are intentionally omitted.
 
 - Prevent intermittent upload failures caused by incomplete survey files. `32e49b6`
 - Project reloads keep controls disabled until loading finishes and preserve your change description if loading fails. `648fd68`
-- New projects now open their project tab without the misleading “no data to display” warning. `7dc5b9e`
+- New projects now open their project tab without the “No Data to display” warning. `c5b44ad`
 
 ## v2026.04.19
 
