@@ -17,6 +17,10 @@
   version string handling
 - `SpeleoDBAccessLevelTest`: enum parsing
 - `HTTPRequestMultipartBodyTest`: multipart encoding
+- `TmlUploadPreparerTest`: frozen snapshot validation, explicit CRC32/size checks,
+  delayed ZIP finalization, capture races, size limits, cancellation, and cleanup
+- `SpeleoDBSaveDispatchTest`: single FX-dispatched save action and command rearming
+- `SpeleoDBUploadLifecycleTest`: overlapping requests, context changes, and cleanup
 - `SpeleoDBHostnameHandlingTest`: URL normalization
 - `SpeleoDBServiceSimpleTest` / `SpeleoDBServiceAdvancedTest`: service logic
 - `SpeleoDBServiceTest`: authentication, URL handling, JSON parsing, file
@@ -34,7 +38,7 @@
 
 - `SpeleoDBControllerIntegrationTest`: message counter, project state, URL
   generation
-- `SpeleoDBImportFlowTest`: upload-before-load ordering
+- `SpeleoDBImportFlowTest`: load-before-upload ordering
 - `SpeleoDBLockAcquisitionTest`: lock lifecycle
 - `SpeleoDBLockReleaseTest`: disconnect/shutdown lock-release behavior
 - `SpeleoDBPluginTest` / `SpeleoDBPluginExtendedTest`: plugin lifecycle
@@ -53,7 +57,10 @@
 - `SpeleoDBProjectCreateApiTest`: project creation request shape and unwrapped
   201 response contract
 - `SpeleoDBProjectListApiTest`: unwrapped list contract and project filtering
-- `SpeleoDBProjectUploadApiTest`: upload multipart/error handling
+- `SpeleoDBProjectUploadApiTest`: upload multipart/error handling using valid ZIPs
+- `TmlUploadBoundaryTest`: Java-only validation of captured binary multipart
+  artifacts, byte/hash identity after live-file mutation, and zero HTTP requests
+  for rejected inputs
 - `SpeleoDBProjectDownloadApiTest`: binary download/error handling
 - `SpeleoDBProjectMutexApiTest`: acquire/release boolean contract plus UI-log
   detail surfacing
@@ -137,3 +144,21 @@ The following areas have limited or no automated test coverage:
   `SpeleoDBConstants.ARIANE_VERSION` being parseable as `x.y.z`; when the host
   reports a non-semver value, wrapper/error/header coverage still runs but the
   version-bounds filter test is skipped
+
+## Upload integrity regression commands
+
+```bash
+./gradlew :org.speleodb.ariane.plugin.speleodb:test \
+  --tests '*TmlUpload*' --tests '*SpeleoDBSaveDispatchTest' \
+  --tests '*SpeleoDBUploadLifecycleTest' --tests '*SpeleoDBProjectUploadApiTest'
+```
+
+No Python interoperability dependency is used. Received ZIPs are checked in Java
+with `ZipFile`, explicit CRC32/size assertions, and `ZipInputStream`.
+
+For offline full-suite checks, explicitly exclude `SpeleoDBAPITest` through a
+Gradle test filter if the local `.env` enables live tests: `.env` takes precedence
+over the `API_TEST_ENABLED` environment variable. Build the production JAR in a
+separate Gradle invocation after tests so it contains `TEST_MODE=false`.
+
+See [TML upload integrity](upload-integrity.md) for the real-host smoke checklist.

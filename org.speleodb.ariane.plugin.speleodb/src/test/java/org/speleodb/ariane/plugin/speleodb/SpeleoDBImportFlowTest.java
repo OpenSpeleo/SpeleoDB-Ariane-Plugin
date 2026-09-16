@@ -113,7 +113,10 @@ class SpeleoDBImportFlowTest {
 
         SpeleoDBService fakeService = new SpeleoDBService(controller) {
             @Override
-            public void uploadProject(String message, jakarta.json.JsonObject project) {
+            public String getSDBInstance() { return "http://localhost"; }
+            @Override
+            public void uploadProject(String message, jakarta.json.JsonObject project, java.nio.file.Path source,
+                    java.util.function.BooleanSupplier contextValid) {
                 stage.compareAndSet(1, 2);
                 uploadLatch.countDown();
             }
@@ -164,7 +167,8 @@ class SpeleoDBImportFlowTest {
 
         SpeleoDBService trackingService = new SpeleoDBService(controller) {
             @Override
-            public void uploadProject(String message, jakarta.json.JsonObject project) {
+            public void uploadProject(String message, jakarta.json.JsonObject project, java.nio.file.Path source,
+                    java.util.function.BooleanSupplier contextValid) {
                 uploadCallCount.incrementAndGet();
             }
         };

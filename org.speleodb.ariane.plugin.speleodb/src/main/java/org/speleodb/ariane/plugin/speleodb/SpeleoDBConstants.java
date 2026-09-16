@@ -178,6 +178,38 @@ public final class SpeleoDBConstants {
         public static final String SUCCESS_GIFS_PATTERN = "*.gif";
     }
 
+    /** Upload preparation limits and diagnostics, independent of HTTP timeouts. */
+    public static final class UPLOAD {
+        public static final long MAX_COMPRESSED_BYTES = 150L * 1024 * 1024;
+        public static final long QUIET_PERIOD_MILLIS = 250;
+        public static final int BUFFER_BYTES = 8192;
+        public static final String TEMP_PREFIX = "speleodb-upload-";
+        public static final String SNAPSHOT_NAME = "snapshot.tml";
+        public static final String SAVE_BUTTON_SELECTOR = "#saveButton";
+        public static final String OS_NAME_PROPERTY = "os.name";
+        public static final String MAC_OS = "mac";
+        public static final String MESSAGE_REQUIRED = "Upload message cannot be empty";
+        public static final String SOURCE_MISSING = "Survey file not found. Save your project locally and try again.";
+        public static final String SOURCE_CHANGED = "Survey changed while preparing the upload.";
+        public static final String TOO_LARGE = "The TML exceeds the 150 MiB upload limit.";
+        public static final String INVALID_ZIP = "The TML is not a complete, supported ZIP archive.";
+        public static final String INVALID_ENTRY = "The TML contains an invalid ZIP entry, size, or CRC32 checksum.";
+        public static final String DUPLICATE_ENTRY = "The TML contains duplicate ZIP entry names.";
+        public static final String NOT_READY = "Could not prepare a valid TML within 10 seconds. Save your project locally, wait for saving to finish, and try again.";
+        public static final String SESSION_CHANGED = "Upload cancelled because the project or connection changed.";
+        public static final String TEMPLATE_MISSING = "Cannot verify the empty project template.";
+        public static final String ALREADY_RUNNING = "An upload is already in progress.";
+        public static final String PREPARATION_LOG = "Upload %s: preparation attempt %d rejected (%s)";
+        public static final String SNAPSHOT_LOG = "Upload %s: validated bytes=%d sha256=%s entries=%d attempts=%d elapsedMs=%d";
+        public static final String REQUEST_LOG = "Upload %s: project=%s plugin=%s JVM=%s";
+        public static final String RESPONSE_LOG = "Upload %s: HTTP %d";
+        public static final String SAVE_LOG = "Host save dispatched via %s (disk completion not acknowledged)";
+        public static final String SAVE_ACCELERATOR = "accelerator";
+        public static final String SAVE_BUTTON = "button";
+        public static final String SAVE_COMMAND = "command";
+        public static final String SAVE_FAILED = "Host save dispatch failed: ";
+    }
+
     // ==================== LOGGING CONFIGURATION ====================
     public static final class LOGGING {
         public static final String LOG_DIR = PATHS.ARIANE_SDB_DIR + System.getProperty("file.separator") + "logs";
@@ -209,6 +241,7 @@ public final class SpeleoDBConstants {
 
     // ==================== UI MESSAGES ====================
     public static final class MESSAGES {
+        public static final String RELOAD_CONTEXT_CHANGED = "Reload cancelled because the active project, survey, or connection changed.";
         // Error Messages
         public static final String UPLOAD_MESSAGE_EMPTY = "Upload message cannot be empty.";
         public static final String USER_NOT_AUTHENTICATED = "User is not authenticated. Please log in.";

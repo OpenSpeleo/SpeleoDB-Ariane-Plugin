@@ -123,17 +123,22 @@ sequenceDiagram
     User->>Controller: Click Upload
     Controller->>Controller: showSaveModal() via SpeleoDBModals
     User->>Controller: Enter commit message
-    Controller->>Plugin: saveSurvey() (trigger host app save)
-    Plugin->>Plugin: commandProperty.set(SAVE)
-    Controller->>Service: acquireOrRefreshProjectMutex()
-    Service->>API: POST /api/v2/projects/{id}/acquire/
-    API-->>Service: 200 OK
-    Controller->>Service: uploadProject(message, project)
-    Service->>Service: calculateSHA256 + empty template check
+    Controller->>Controller: Acquire upload guard; capture project/session
+    Controller->>Plugin: requestSurveySave() on FX thread
+    Plugin->>Plugin: Invoke ONE available save mechanism
+    Plugin-->>Controller: Dispatch complete (not disk completion)
+    Controller->>Service: uploadProject(message, project, sourcePath)
+    Service->>Service: Capture private snapshot; enforce 150 MiB limit
+    Service->>Service: Validate ZIP directory, local entries, sizes, CRC32
+    Service->>Service: SHA-256 + empty-template check on frozen bytes
+    Service->>Service: Recheck project/session; encode frozen artifact bytes
     Service->>API: PUT /api/v2/projects/{id}/upload/ariane_tml/
     API-->>Service: 200 OK / 304 Not Modified
     Controller->>Controller: showSuccessCelebration()
 ```
+
+See [TML upload integrity](upload-integrity.md) for the snapshot invariant,
+retry limits, save-freshness limitation, and diagnostics.
 
 ## Data Flow: Plugin Update Download
 

@@ -18,11 +18,13 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import java.util.prefs.Preferences;
 
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.API;
@@ -38,6 +40,7 @@ import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.PREFERENCES;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.STYLES;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.SortMode;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.TIMINGS;
+import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.UPLOAD;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.URLS;
 
 import com.arianesline.ariane.plugin.api.DataServerCommands;
@@ -46,6 +49,7 @@ import com.arianesline.cavelib.api.CaveSurveyInterface;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
+
 import javafx.animation.FadeTransition;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -197,6 +201,7 @@ public class SpeleoDBController implements Initializable {
 
     // Internal Controller Data
     private volatile JsonObject currentProject = null;
+    private final AtomicBoolean uploadInProgress = new AtomicBoolean();
 
     // Sorting state
     private SortMode currentSortMode = SortMode.BY_NAME; // Default to sort by name
@@ -1360,17 +1365,18 @@ public class SpeleoDBController implements Initializable {
         }
 
         Platform.runLater(() -> {
+            boolean busy = loading || uploadInProgress.get();
             // Project-related controls
-            projectListView.setDisable(loading);
-            createNewProjectButton.setDisable(loading);
-            refreshProjectsButton.setDisable(loading);
-            sortByNameButton.setDisable(loading);
-            sortByDateButton.setDisable(loading);
+            projectListView.setDisable(busy);
+            createNewProjectButton.setDisable(busy);
+            refreshProjectsButton.setDisable(busy);
+            sortByNameButton.setDisable(busy);
+            sortByDateButton.setDisable(busy);
 
-            serverProgressIndicator.setVisible(loading);
+            serverProgressIndicator.setVisible(busy);
 
             // Project action controls (only disable if they're currently enabled)
-            if (loading) {
+            if (busy) {
                 uploadButton.setDisable(true);
             } else {
                 // Re-enable based on current project state
@@ -1380,12 +1386,12 @@ public class SpeleoDBController implements Initializable {
 
             // Connection controls (only if not authenticated)
             if (speleoDBService == null || !speleoDBService.isAuthenticated()) {
-                setConnectionFormEnabled(!loading);
+                setConnectionFormEnabled(!busy);
             }
 
             // Titled panes for visual feedback
-            projectsListingPane.setDisable(loading);
-            projectActionsPane.setDisable(loading);
+            projectsListingPane.setDisable(busy);
+            projectActionsPane.setDisable(busy);
         });
     }
 
@@ -1971,6 +1977,11 @@ public class SpeleoDBController implements Initializable {
     }
 
     private void loadProject(JsonObject project, Path tmlFilepath, String projectName, boolean hasWriteAccess) {
+        loadProject(project, tmlFilepath, projectName, hasWriteAccess, () -> true);
+    }
+
+    private void loadProject(JsonObject project, Path tmlFilepath, String projectName, boolean hasWriteAccess,
+            BooleanSupplier contextValid) {
         if (Files.exists(tmlFilepath)) {
             // Load the project asynchronously to keep UI responsive
             String loadingMessage = hasWriteAccess ? "Loading project file ..." : "Loading read-only project file...";
@@ -2012,7 +2023,7 @@ public class SpeleoDBController implements Initializable {
                         showErrorAnimation(errorMessage);
                         setUILoadingState(false);
                     });
-                });
+                }, contextValid);
         } else {
             logger.info("Downloaded file not found: " + tmlFilepath);
             Platform.runLater(() -> {
@@ -2032,18 +2043,37 @@ public class SpeleoDBController implements Initializable {
      * @param onError callback executed when loading fails
      */
     private void loadSurveyAsync(File surveyFile, Runnable onSuccess, java.util.function.Consumer<Exception> onError) {
+        loadSurveyAsync(surveyFile, onSuccess, onError, () -> true);
+    }
+
+    private void loadSurveyAsync(File surveyFile, Runnable onSuccess, java.util.function.Consumer<Exception> onError,
+            BooleanSupplier contextValid) {
         // Execute entirely in background to avoid blocking UI
         parentPlugin.executorService.execute(() -> {
+            CompletableFuture<Void> dispatched = new CompletableFuture<>();
             try {
                 // Set up survey loading on JavaFX thread (same as original loadSurvey)
                 final java.util.concurrent.atomic.AtomicBoolean loadingLock = new java.util.concurrent.atomic.AtomicBoolean(false);
 
                 Platform.runLater(() -> {
-                    loadingLock.set(true);  // Set lock before starting (matches original)
-                    parentPlugin.setSurvey(null); // Clear existing survey
-                    parentPlugin.setSurveyFile(surveyFile); // Set the file
-                    parentPlugin.getCommandProperty().set(DataServerCommands.LOAD.name());  // Trigger load command
+                    if (dispatched.isDone()) {
+                        return;
+                    }
+                    try {
+                        if (!contextValid.getAsBoolean()) {
+                            throw new IllegalStateException(MESSAGES.RELOAD_CONTEXT_CHANGED);
+                        }
+                        loadingLock.set(true);
+                        parentPlugin.setSurvey(null);
+                        parentPlugin.setSurveyFile(surveyFile);
+                        parentPlugin.getCommandProperty().set(DataServerCommands.LOAD.name());
+                        dispatched.complete(null);
+                    } catch (Exception e) {
+                        dispatched.completeExceptionally(e);
+                    }
                 });
+                // Do not inspect the previous survey or report success before LOAD dispatch.
+                dispatched.get(TIMINGS.FILE_STABILITY_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
                 // Wait for the survey to be loaded (polling with timeout) - same logic as original
                 var start = java.time.LocalDateTime.now();
@@ -2076,147 +2106,16 @@ public class SpeleoDBController implements Initializable {
                 }
 
             } catch (Exception e) {
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
                 // Unexpected error during setup
                 logger.error("Error setting up survey loading: " + e.getMessage());
                 onError.accept(e);
+            } finally {
+                dispatched.cancel(false);
             }
         });
-    }
-
-    /**
-     * Attempts to invoke Ariane's Save accelerator by running the Scene accelerator Runnable
-     * for Cmd/Ctrl+S directly (no OS-level synthetic input), to avoid macOS security prompts.
-     */
-    private void triggerHostSaveAcceleratorBlocking(int waitMillis) {
-        try {
-            if (speleoDBAnchorPane == null || speleoDBAnchorPane.getScene() == null) {
-                return;
-            }
-            final CountDownLatch latch = new CountDownLatch(1);
-            Platform.runLater(() -> {
-                try {
-                    boolean isMac = System.getProperty("os.name").toLowerCase().contains("mac");
-                    KeyCombination combo = new KeyCodeCombination(
-                        KeyCode.S,
-                        isMac ? KeyCombination.META_DOWN : KeyCombination.CONTROL_DOWN
-                    );
-                    Map<KeyCombination, Runnable> accels = speleoDBAnchorPane.getScene().getAccelerators();
-                    Runnable action = accels.get(combo);
-                    if (action != null) {
-                        action.run();
-                    }
-                } catch (Exception e) {
-                    logger.debug("Host save accelerator invocation error: " + e.getMessage());
-                } finally {
-                    latch.countDown();
-                }
-            });
-            latch.await(Math.max(1, waitMillis), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    /**
-     * Waits for a TML file to be fully written and pass full CRC32 ZIP validation.
-     *
-     * <p>Ariane writes {@code .tml} (ZIP) files asynchronously, so the file may still
-     * be incomplete when we first check. This method polls with <b>exponential backoff</b>
-     * (50 ms → 100 → 200 → 400 → 800 → 1000 ms cap) to balance responsiveness against
-     * I/O overhead, with a total timeout of
-     * {@value SpeleoDBConstants.TIMINGS#FILE_STABILITY_TIMEOUT_MILLIS} ms.</p>
-     *
-     * <p>Each attempt runs {@link #isValidZipFile(java.io.File)}, which decompresses
-     * every entry and verifies CRC32 checksums — equivalent to Python's
-     * {@code ZipFile.testzip()}.</p>
-     *
-     * @param file the TML/ZIP file to wait for
-     * @return true if the file passes full ZIP/CRC32 validation, false on timeout or interruption
-     */
-    private boolean waitForFileStability(java.io.File file) {
-        if (file == null) {
-            return false;
-        }
-
-        long startTime = System.currentTimeMillis();
-        long currentBackoff = TIMINGS.FILE_STABILITY_INITIAL_BACKOFF_MILLIS;
-        int attempt = 0;
-
-        while (System.currentTimeMillis() - startTime < TIMINGS.FILE_STABILITY_TIMEOUT_MILLIS) {
-            attempt++;
-            try {
-                if (file.exists() && isValidZipFile(file)) {
-                    long elapsed = System.currentTimeMillis() - startTime;
-                    logger.debug("ZIP validation passed after " + attempt +
-                                 " attempt(s) in " + elapsed + "ms");
-                    return true;
-                }
-
-                logger.debug("ZIP validation attempt " + attempt + " failed, retrying in " +
-                             currentBackoff + "ms (elapsed: " +
-                             (System.currentTimeMillis() - startTime) + "ms)");
-                Thread.sleep(currentBackoff);
-                currentBackoff = Math.min(currentBackoff * 2, TIMINGS.FILE_STABILITY_MAX_BACKOFF_MILLIS);
-
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.warn("File stability wait interrupted");
-                return false;
-            }
-        }
-
-        logger.warn("ZIP validation timeout after " + TIMINGS.FILE_STABILITY_TIMEOUT_MILLIS +
-                     "ms (" + attempt + " attempts). File size: " +
-                     (file.exists() ? file.length() : 0) + " bytes");
-        return false;
-    }
-
-    /**
-     * Validates a file as a complete, intact ZIP archive by reading and decompressing
-     * every entry and verifying CRC32 checksums. This is equivalent to Python's
-     * {@code ZipFile.testzip()} and guarantees that a file passing this check will
-     * also pass server-side validation, preventing {@code BadZipFile} errors from
-     * the SpeleoDB API.
-     *
-     * <p>The verification works because Java's {@link java.util.zip.ZipFile} automatically
-     * checks CRC32 on read: if the stored checksum does not match the decompressed data,
-     * a {@link java.util.zip.ZipException} is thrown.</p>
-     *
-     * @param file the file to validate
-     * @return true if the file is a valid ZIP with at least one entry and all CRC32 checksums pass
-     */
-    private boolean isValidZipFile(java.io.File file) {
-        if (file == null || !file.exists()) {
-            return false;
-        }
-
-        try (java.util.zip.ZipFile zipFile = new java.util.zip.ZipFile(file)) {
-            java.util.Enumeration<? extends java.util.zip.ZipEntry> entries = zipFile.entries();
-            if (!entries.hasMoreElements()) {
-                return false;
-            }
-
-            byte[] buffer = new byte[8192];
-            while (entries.hasMoreElements()) {
-                java.util.zip.ZipEntry entry = entries.nextElement();
-                if (entry.isDirectory()) {
-                    continue;
-                }
-                // Reading all bytes triggers CRC32 verification against the stored checksum
-                try (java.io.InputStream is = zipFile.getInputStream(entry)) {
-                    while (is.read(buffer) != -1) {
-                        // drain — CRC32 is verified on read by ZipFile
-                    }
-                }
-            }
-            return true;
-        } catch (java.util.zip.ZipException e) {
-            logger.debug("ZIP validation failed (ZipException): " + e.getMessage());
-            return false;
-        } catch (java.io.IOException e) {
-            logger.debug("ZIP validation failed (IOException): " + e.getMessage());
-            return false;
-        }
     }
 
     /**
@@ -2333,114 +2232,115 @@ public class SpeleoDBController implements Initializable {
      * @param commitMessage the commit message for the upload
      */
     private void uploadProjectWithMessage(String commitMessage) {
-        logger.info("Uploading project " + currentProject.getString("name") + "  ...");
-
-        parentPlugin.executorService.execute(() -> {
+        JsonObject project = currentProject;
+        if (project == null) {
+            return;
+        }
+        if (!uploadInProgress.compareAndSet(false, true)) {
+            logger.info(UPLOAD.ALREADY_RUNNING);
+            return;
+        }
+        String instance;
+        try {
+            instance = speleoDBService.getSDBInstance();
             setUILoadingState(true);
+            long generation = speleoDBService.sessionGeneration();
+            CaveSurveyInterface survey = parentPlugin.getSurvey();
+            File originalSource = parentPlugin.getSurveyFile();
+            parentPlugin.executorService.execute(() ->
+                    runUpload(commitMessage, project, instance, generation, survey, originalSource));
+        } catch (Exception e) {
+            finishUpload();
+            logger.warn(UPLOAD.SAVE_FAILED + e.getClass().getSimpleName());
+            Platform.runLater(() -> SpeleoDBModals.showError(DIALOGS.TITLE_PROJECT_NOT_SAVED,
+                    getSafeErrorMessage(e)));
+        }
+    }
 
-            // Attempt to invoke host's Save accelerator without synthetic key events
-            triggerHostSaveAcceleratorBlocking(300);
+    private void finishUpload() {
+        uploadInProgress.set(false);
+        Platform.runLater(() -> setUILoadingState(false));
+    }
 
-            parentPlugin.saveSurvey();
+    private boolean projectContextValid(JsonObject project, long generation, CaveSurveyInterface survey) {
+        return !shutdownInProgress && generation == speleoDBService.sessionGeneration()
+                && Objects.equals(currentProject, project) && parentPlugin.getSurvey() == survey;
+    }
 
-            try {
-                // Ensure latest survey file is present and copy to SDB working path before upload
-                java.io.File sourceFile = parentPlugin.getSurveyFile();
-                if (sourceFile == null || !sourceFile.exists()) {
-                    Platform.runLater(() -> {
-                        showErrorAnimation("Survey file not found");
-                        SpeleoDBModals.showError(
-                            DIALOGS.TITLE_PROJECT_NOT_SAVED,
-                            "The survey file was not found on disk. Please save your project and try again."
-                        );
-                        setUILoadingState(false);
-                    });
-                    return;
-                }
-
-                // Wait for the file to be fully written (avoid race condition with async save)
-                if (!waitForFileStability(sourceFile)) {
-                    Platform.runLater(() -> {
-                        showErrorAnimation("File not ready");
-                        SpeleoDBModals.showError(
-                            DIALOGS.TITLE_PROJECT_NOT_SAVED,
-                            "The survey file is not ready yet. The save operation may still be in progress.\n\n" +
-                            "Please wait a moment and try again, or manually save your project (CTRL+S/CMD+S) first."
-                        );
-                        setUILoadingState(false);
-                    });
-                    return;
-                }
-
-                String projectId = currentProject.getString("id");
-                java.nio.file.Path destPath = java.nio.file.Paths.get(PATHS.SDB_PROJECT_DIR + java.io.File.separator + projectId + PATHS.TML_FILE_EXTENSION);
-                try {
-                    java.nio.file.Files.createDirectories(destPath.getParent());
-                    java.nio.file.Files.copy(sourceFile.toPath(), destPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                } catch (java.io.IOException ioEx) {
-                    logger.error("Failed to copy survey file before upload: " + ioEx.getMessage());
-                    Platform.runLater(() -> {
-                        showErrorAnimation("Save copy failed");
-                        SpeleoDBModals.showError(
-                            DIALOGS.TITLE_PROJECT_NOT_SAVED,
-                            "Could not prepare project file for upload. Please save your project (CTRL+S/CMD+S) and try again."
-                        );
-                        setUILoadingState(false);
-                    });
-                    return;
-                }
-
-                speleoDBService.uploadProject(commitMessage, currentProject);
-                logger.info("Upload successful.");
-
-                Platform.runLater(() -> {
-                    // Clear the upload message text field after successful upload
+    private void runUpload(String commitMessage, JsonObject project, String instance, long generation,
+            CaveSurveyInterface survey, File originalSource) {
+        CompletableFuture<Void> saveRequest = null;
+        try {
+            if (!projectContextValid(project, generation, survey)
+                    || !Objects.equals(parentPlugin.getSurveyFile(), originalSource)
+                    || !instance.equals(speleoDBService.getSDBInstance())) {
+                throw new IllegalStateException(UPLOAD.SESSION_CHANGED);
+            }
+            saveRequest = parentPlugin.requestSurveySave(() -> projectContextValid(project, generation, survey)
+                    && Objects.equals(parentPlugin.getSurveyFile(), originalSource));
+            saveRequest.get(TIMINGS.FILE_STABILITY_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+            if (!projectContextValid(project, generation, survey)) {
+                throw new IllegalStateException(UPLOAD.SESSION_CHANGED);
+            }
+            // A Save As dispatched for the same survey may have supplied a new path.
+            File source = parentPlugin.getSurveyFile();
+            speleoDBService.uploadProject(commitMessage, project, source == null ? null : source.toPath(),
+                    () -> projectContextValid(project, generation, survey)
+                            && Objects.equals(parentPlugin.getSurveyFile(), source));
+            logger.info("Upload successful.");
+            Platform.runLater(() -> {
+                if (Objects.equals(currentProject, project)) {
                     uploadMessageTextField.clear();
                     showSuccessCelebrationDialog(() -> {});
-                    setUILoadingState(false);
-                });
-
-            } catch (Exception e) {
-                String errorMessage = getNetworkErrorMessage(e, "Upload");
-                String guidance = buildUploadFailureGuidance();
-                String uploadUrl = getUploadUrl();
-                logger.info("Upload failed: " + getSafeErrorMessage(e));
-
-                Platform.runLater(() -> {
-                    if (e instanceof NotModifiedException) {
-                        showErrorAnimation("Not saved");
-                        SpeleoDBModals.showError(
-                            DIALOGS.TITLE_PROJECT_NOT_SAVED,
-                            MESSAGES.PROJECT_NOT_MODIFIED_WITH_HINT
-                        );
-                        SpeleoDBTooltips.showError(MESSAGES.PROJECT_UPLOAD_NOT_MODIFIED);
-                    } else if (uploadUrl != null) {
-                        String msg;
-                        String animText;
-                        if (isServerOfflineError(e)) {
-                            msg = errorMessage;
-                            animText = "Can't reach server";
-                        } else if (isTimeoutError(e)) {
-                            msg = errorMessage;
-                            animText = "Upload timed out";
-                        } else {
-                            msg = "Upload failed: " + getSafeErrorMessage(e) + "\n\n" +
-                                  MESSAGES.UPLOAD_FAILED_RETRY;
-                            animText = "Upload Failed";
-                        }
-                        showErrorAnimation(animText);
-                        SpeleoDBModals.showErrorWithLink(
-                            "Upload Failed", msg + "\n\n" + guidance, uploadUrl);
-                    } else {
-                        showErrorAnimation("Upload Failed");
-                        SpeleoDBModals.showError("Upload Failed",
-                            "Upload failed: " + getSafeErrorMessage(e) + "\n\n" +
-                            MESSAGES.UPLOAD_FAILED_RETRY + "\n\n" + MESSAGES.CONTACT_ADMIN_HINT);
-                    }
-                    setUILoadingState(false);
-                });
+                }
+            });
+        } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
             }
-        });
+            String errorMessage = getNetworkErrorMessage(e, "Upload");
+            String guidance = buildUploadFailureGuidance();
+            String uploadUrl = buildUploadUrl(instance, project.getString(JSON_FIELDS.ID));
+            logger.info("Upload failed: " + getSafeErrorMessage(e));
+
+            Platform.runLater(() -> {
+                if (e instanceof NotModifiedException) {
+                    showErrorAnimation("Not saved");
+                    SpeleoDBModals.showError(
+                        DIALOGS.TITLE_PROJECT_NOT_SAVED,
+                        MESSAGES.PROJECT_NOT_MODIFIED_WITH_HINT
+                    );
+                    SpeleoDBTooltips.showError(MESSAGES.PROJECT_UPLOAD_NOT_MODIFIED);
+                } else if (uploadUrl != null) {
+                    String msg;
+                    String animText;
+                    if (isServerOfflineError(e)) {
+                        msg = errorMessage;
+                        animText = "Can't reach server";
+                    } else if (isTimeoutError(e)) {
+                        msg = errorMessage;
+                        animText = "Upload timed out";
+                    } else {
+                        msg = "Upload failed: " + getSafeErrorMessage(e) + "\n\n" +
+                              MESSAGES.UPLOAD_FAILED_RETRY;
+                        animText = "Upload Failed";
+                    }
+                    showErrorAnimation(animText);
+                    SpeleoDBModals.showErrorWithLink(
+                        "Upload Failed", msg + "\n\n" + guidance, uploadUrl);
+                } else {
+                    showErrorAnimation("Upload Failed");
+                    SpeleoDBModals.showError("Upload Failed",
+                        "Upload failed: " + getSafeErrorMessage(e) + "\n\n" +
+                        MESSAGES.UPLOAD_FAILED_RETRY + "\n\n" + MESSAGES.CONTACT_ADMIN_HINT);
+                }
+            });
+        } finally {
+            if (saveRequest != null) {
+                saveRequest.cancel(false);
+            }
+            finishUpload();
+        }
     }
 
     /**
@@ -2465,13 +2365,17 @@ public class SpeleoDBController implements Initializable {
     @FXML
     public void onReloadProject(ActionEvent actionEvent) {
         // Ensure we have a current project
-        if (currentProject == null) {
+        JsonObject project = currentProject;
+        if (project == null) {
             logger.info("No project is currently loaded to reload");
             showErrorAnimation("No project to reload");
             return;
         }
 
-        String projectName = currentProject.getString("name");
+        String projectName = project.getString("name");
+        CaveSurveyInterface survey = parentPlugin.getSurvey();
+        File activeSource = parentPlugin.getSurveyFile();
+        long generation = speleoDBService.sessionGeneration();
 
         // Show confirmation dialog following material design
         String message = "Are you sure you want to reload the project \"" + projectName + "\"?\n\n" +
@@ -2487,8 +2391,9 @@ public class SpeleoDBController implements Initializable {
             return;
         }
 
-        String projectId = currentProject.getString("id");
-        Path tmlFilePath = Paths.get(PATHS.SDB_PROJECT_DIR + File.separator + projectId + PATHS.TML_FILE_EXTENSION);
+        String projectId = project.getString(JSON_FIELDS.ID);
+        Path tmlFilePath = activeSource != null ? activeSource.toPath()
+                : Paths.get(PATHS.SDB_PROJECT_DIR, projectId + PATHS.TML_FILE_EXTENSION);
 
         if (!Files.exists(tmlFilePath)) {
             Platform.runLater(() -> {
@@ -2503,9 +2408,15 @@ public class SpeleoDBController implements Initializable {
 
         parentPlugin.executorService.execute(() -> {
             try {
+                if (!projectContextValid(project, generation, survey)
+                        || !Objects.equals(parentPlugin.getSurveyFile(), activeSource)) {
+                    return;
+                }
                 logger.info("Reloading project from disk: " + projectName);
 
-                loadProject(currentProject, tmlFilePath, projectName, true);
+                loadProject(project, tmlFilePath, projectName, true,
+                        () -> projectContextValid(project, generation, survey)
+                                && Objects.equals(parentPlugin.getSurveyFile(), activeSource));
 
                 Platform.runLater(() -> {
                     uploadMessageTextField.clear();

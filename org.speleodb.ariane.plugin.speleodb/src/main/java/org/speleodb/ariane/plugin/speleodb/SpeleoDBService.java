@@ -18,7 +18,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,6 +35,7 @@ import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.MESSAGES;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.NETWORK;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.PATHS;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.ProjectType;
+import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.UPLOAD;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -45,15 +50,26 @@ import jakarta.json.JsonValue;
  * Uses the centralized SpeleoDBLogger directly.
  */
 public class SpeleoDBService {
-    private String authToken = "";
-    private String sdbInstance = "";
-    private HttpClient httpClient = null;
+    private volatile String authToken = "";
+    private volatile String sdbInstance = "";
+    private volatile HttpClient httpClient = null;
+
+    private final AtomicLong sessionGeneration = new AtomicLong();
+    private final TmlUploadPreparer uploadPreparer;
 
     // Centralized logger instance - used directly without wrapper methods
     private static final SpeleoDBLogger logger = SpeleoDBLogger.getInstance();
 
     public SpeleoDBService(SpeleoDBController controller) {
-        // Controller parameter retained for API compatibility; not currently used by the service
+        this(controller, new TmlUploadPreparer());
+    }
+
+    SpeleoDBService(SpeleoDBController controller, TmlUploadPreparer uploadPreparer) {
+        this.uploadPreparer = uploadPreparer;
+    }
+
+    long sessionGeneration() {
+        return sessionGeneration.get();
     }
 
     /**
@@ -76,6 +92,7 @@ public class SpeleoDBService {
      * @param instanceUrl the SpeleoDB instance URL.
      */
     private void setSDBInstance(String instanceUrl) {
+        sessionGeneration.incrementAndGet();
         sdbInstance = resolveInstanceUrl(instanceUrl);
     }
 
@@ -250,6 +267,7 @@ public class SpeleoDBService {
      * Logs the user out by clearing the authentication token and the sdbInstance
      */
     public void logout() {
+        sessionGeneration.incrementAndGet();
         authToken = "";
         sdbInstance = "";
         httpClient = null;  // Clear cached HTTP client on logout
@@ -375,61 +393,73 @@ public class SpeleoDBService {
      * @throws Exception if the upload fails.
      */
     public void uploadProject(String message, JsonObject project) throws Exception {
-        if (!isAuthenticated()) {
-            throw new IllegalStateException(MESSAGES.USER_NOT_AUTHENTICATED_SHORT);
+        validateUploadMessage(message);
+        uploadProject(message, project, Paths.get(PATHS.SDB_PROJECT_DIR,
+                project.getString(JSON_FIELDS.ID) + PATHS.TML_FILE_EXTENSION));
+    }
+
+    /** Uploads only a privately captured and validated snapshot of the source. */
+    public void uploadProject(String message, JsonObject project, Path source) throws Exception {
+        uploadProject(message, project, source, () -> true);
+    }
+
+    void uploadProject(String message, JsonObject project, Path source, BooleanSupplier contextValid)
+            throws Exception {
+        String sanitizedMessage = validateUploadMessage(message);
+        long generation = sessionGeneration.get();
+        String instance = sdbInstance;
+        String token = authToken;
+        HttpClient client = httpClient;
+        String projectId = project.getString(JSON_FIELDS.ID);
+        String attemptId = UUID.randomUUID().toString();
+        logger.debug(UPLOAD.REQUEST_LOG.formatted(attemptId, projectId,
+                SpeleoDBConstants.VERSION_DISPLAY, Runtime.version()));
+        if (!contextValid.getAsBoolean()) {
+            throw new IllegalStateException(UPLOAD.SESSION_CHANGED);
         }
-
-        String sanitizedMessage = (message != null) ? message.strip() : "";
-        if (sanitizedMessage.isEmpty()) {
-            throw new IllegalArgumentException("Upload message cannot be empty");
+        TmlUploadPreparer.Snapshot snapshot = uploadPreparer.prepare(source, attemptId);
+        if (getEmptyTemplateSHA256().equals(snapshot.sha256())) {
+            throw new IllegalArgumentException(MESSAGES.PROJECT_UPLOAD_REJECTED_EMPTY);
         }
-
-        // TODO: Ensure MUTEX is owned before upload - either statically but maybe preferably by calling API.
-        String sdbProjectId = project.getString(JSON_FIELDS.ID);
-        Path tmpFilepath = Paths.get(PATHS.SDB_PROJECT_DIR + File.separator + sdbProjectId + PATHS.TML_FILE_EXTENSION);
-
-        // Check if the TML file is the same as the empty project template
-        if (Files.exists(tmpFilepath)) {
-            try {
-                byte[] fileData = Files.readAllBytes(tmpFilepath);
-                String fileHash = calculateSHA256(fileData);
-
-                String emptyTemplateHash = getEmptyTemplateSHA256();
-                if (emptyTemplateHash != null && emptyTemplateHash.equals(fileHash)) {
-                    throw new IllegalArgumentException(MESSAGES.PROJECT_UPLOAD_REJECTED_EMPTY);
-                }
-            } catch (IOException e) {
-                logger.warn("Warning: Could not verify project file hash: " + e.getMessage());
-                // Continue with upload if file reading fails - let server handle validation
-            }
-        }
-
-        URI uri = new URI(
-            sdbInstance + API.PROJECTS_ENDPOINT +
-            sdbProjectId + API.UPLOAD_ARIANE_TML_PATH
-        );
-
-        HTTPRequestMultipartBody multipartBody = new HTTPRequestMultipartBody.Builder()
-                .addPart(JSON_FIELDS.MESSAGE, sanitizedMessage)
-                .addPart(JSON_FIELDS.FILE_KEY, tmpFilepath.toFile(), null, sdbProjectId + PATHS.TML_FILE_EXTENSION)
-                .build();
-
+        URI uri = new URI(instance + API.PROJECTS_ENDPOINT + projectId + API.UPLOAD_ARIANE_TML_PATH);
+        HTTPRequestMultipartBody.Builder builder = new HTTPRequestMultipartBody.Builder()
+                .addPart(JSON_FIELDS.MESSAGE, sanitizedMessage);
+        snapshot.addPart(builder, JSON_FIELDS.FILE_KEY, projectId + PATHS.TML_FILE_EXTENSION);
+        HTTPRequestMultipartBody multipartBody = builder.build();
         HttpRequest request = HttpRequest.newBuilder(uri)
                 .PUT(HttpRequest.BodyPublishers.ofByteArray(multipartBody.getBody()))
                 .setHeader(HEADERS.CONTENT_TYPE, multipartBody.getContentType())
-                .setHeader(HEADERS.AUTHORIZATION, HEADERS.TOKEN_PREFIX + authToken)
-                .timeout(Duration.ofSeconds(NETWORK.REQUEST_TIMEOUT_SECONDS))  // Add request timeout
+                .setHeader(HEADERS.AUTHORIZATION, HEADERS.TOKEN_PREFIX + token)
+                .timeout(Duration.ofSeconds(NETWORK.REQUEST_TIMEOUT_SECONDS))
                 .build();
-
-        HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException();
+        }
+        if (generation != sessionGeneration.get() || client != httpClient
+                || !Objects.equals(instance, sdbInstance) || !Objects.equals(token, authToken)
+                || !contextValid.getAsBoolean()) {
+            throw new IllegalStateException(UPLOAD.SESSION_CHANGED);
+        }
+        HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
         int status = response.statusCode();
+        logger.debug(UPLOAD.RESPONSE_LOG.formatted(attemptId, status));
         if (status == HTTP_STATUS.OK) {
             return;
         } else if (status == HTTP_STATUS.NOT_MODIFIED) {
             throw new NotModifiedException(MESSAGES.PROJECT_UPLOAD_NOT_MODIFIED);
         }
         throw new Exception(formatStatusError(MESSAGES.PROJECT_UPLOAD_FAILED_STATUS, status, decodeUtf8(response.body())));
+    }
+
+    private String validateUploadMessage(String message) {
+        if (!isAuthenticated()) {
+            throw new IllegalStateException(MESSAGES.USER_NOT_AUTHENTICATED_SHORT);
+        }
+        String sanitized = message == null ? "" : message.strip();
+        if (sanitized.isEmpty()) {
+            throw new IllegalArgumentException(UPLOAD.MESSAGE_REQUIRED);
+        }
+        return sanitized;
     }
 
     // -------------------------- Project Download ------------------------- //
@@ -879,20 +909,15 @@ public class SpeleoDBService {
     /**
      * Gets the SHA256 hash of the empty project template from resources.
      *
-     * @return the SHA256 hash of the empty template, or null if it cannot be calculated
+     * @return the SHA256 hash of the empty template
+     * @throws IOException if the template cannot be read
      */
-    private String getEmptyTemplateSHA256() {
+    private String getEmptyTemplateSHA256() throws IOException {
         try (var templateStream = getClass().getResourceAsStream(PATHS.EMPTY_TML)) {
             if (templateStream == null) {
-                logger.warn("Empty template file not found in resources: " + PATHS.EMPTY_TML);
-                return null;
+                throw new IOException(UPLOAD.TEMPLATE_MISSING);
             }
-
-            byte[] templateData = templateStream.readAllBytes();
-            return calculateSHA256(templateData);
-        } catch (IOException e) {
-            logger.warn("Error reading empty template file for hash calculation: " + e.getMessage());
-            return null;
+            return calculateSHA256(templateStream.readAllBytes());
         }
     }
 }

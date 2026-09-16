@@ -56,7 +56,9 @@ class SpeleoDBProjectUploadApiTest extends AbstractSpeleoDBServiceWireMockTest {
 
         tmlFile = Paths.get(PATHS.SDB_PROJECT_DIR, projectId + PATHS.TML_FILE_EXTENSION);
         Files.createDirectories(tmlFile.getParent());
-        Files.write(tmlFile, "non-empty test payload not matching empty_project.tml SHA-256".getBytes());
+        try (InputStream fixture = getClass().getResourceAsStream("/artifacts/project.tml")) {
+            Files.copy(fixture, tmlFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 
     @AfterEach

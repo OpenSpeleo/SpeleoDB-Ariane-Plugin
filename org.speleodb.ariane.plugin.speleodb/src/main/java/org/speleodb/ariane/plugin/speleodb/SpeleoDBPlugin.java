@@ -3,13 +3,17 @@ package org.speleodb.ariane.plugin.speleodb;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.DEBUG;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.NETWORK;
+import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.UPLOAD;
 
 import com.arianesline.ariane.plugin.api.DataServerCommands;
 import com.arianesline.ariane.plugin.api.DataServerPlugin;
@@ -17,13 +21,18 @@ import com.arianesline.ariane.plugin.api.PluginInterface;
 import com.arianesline.ariane.plugin.api.PluginType;
 import com.arianesline.cavelib.api.CaveSurveyInterface;
 
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
@@ -214,23 +223,97 @@ public class SpeleoDBPlugin implements DataServerPlugin {
 
 
     public void saveSurvey() {
-        // Programmatically trigger the host app's Save button if present (id="saveButton")
-        try {
-            SpeleoDBController controller = SpeleoDBController.getInstance();
-            javafx.scene.Scene scene = (controller != null && controller.getSpeleoDBAnchorPane() != null) ?
-                    controller.getSpeleoDBAnchorPane().getScene() : null;
-            if (scene != null) {
-                javafx.scene.Node node = scene.lookup("#saveButton");
-                if (node instanceof javafx.scene.control.Button) {
-                    ((javafx.scene.control.Button) node).fire();
+        requestSurveySave().exceptionally(error -> {
+            logger.warn(UPLOAD.SAVE_FAILED + error.getClass().getSimpleName());
+            return null;
+        });
+    }
+
+    /** Completes after invoking ONE host action, not after the asynchronous disk save. */
+    CompletableFuture<Void> requestSurveySave() {
+        return requestSurveySave(() -> true);
+    }
+
+    /** Checks the requesting survey context on FX immediately before invoking the host. */
+    CompletableFuture<Void> requestSurveySave(BooleanSupplier contextValid) {
+        CompletableFuture<Void> dispatched = new CompletableFuture<>();
+        Runnable request = () -> {
+            if (dispatched.isDone()) {
+                return;
+            }
+            try {
+                if (!contextValid.getAsBoolean()) {
+                    throw new IllegalStateException(UPLOAD.SESSION_CHANGED);
                 }
+                SpeleoDBController controller = SpeleoDBController.getInstance();
+                Scene scene = controller.getSpeleoDBAnchorPane() == null ? null
+                        : controller.getSpeleoDBAnchorPane().getScene();
+                dispatchSurveySave(scene);
+                dispatched.complete(null);
+            } catch (Exception e) {
+                dispatched.completeExceptionally(e);
+            }
+        };
+        try {
+            if (Platform.isFxApplicationThread()) {
+                request.run();
+            } else {
+                Platform.runLater(request);
             }
         } catch (Exception e) {
-            logger.debug("Host save button lookup/fire failed: " + e.getMessage());
+            dispatched.completeExceptionally(e);
         }
+        return dispatched;
+    }
 
-        // Also trigger host save via command property as a fallback
+    /** Must be called on the FX thread. A failed invoked action never falls through. */
+    void dispatchSurveySave(Scene scene) {
+        if (!Platform.isFxApplicationThread()) {
+            throw new IllegalStateException(UPLOAD.SAVE_FAILED);
+        }
+        if (scene != null) {
+            boolean isMac = System.getProperty(UPLOAD.OS_NAME_PROPERTY).toLowerCase(Locale.ROOT)
+                    .contains(UPLOAD.MAC_OS);
+            KeyCombination shortcut = new KeyCodeCombination(KeyCode.S,
+                    isMac ? KeyCombination.META_DOWN : KeyCombination.CONTROL_DOWN);
+            Runnable accelerator = scene.getAccelerators().get(shortcut);
+            if (accelerator == null) {
+                accelerator = scene.getAccelerators().get(
+                        new KeyCodeCombination(KeyCode.S, KeyCombination.SHORTCUT_DOWN));
+            }
+            if (accelerator != null) {
+                dispatchSaveActions(accelerator, null);
+                return;
+            }
+            Node node = scene.lookup(UPLOAD.SAVE_BUTTON_SELECTOR);
+            if (node instanceof Button button && !button.isDisabled()) {
+                dispatchSaveActions(null, button::fire);
+                return;
+            }
+        }
+        dispatchSaveActions(null, null);
+    }
+
+    /** Select exactly one action; never issue another save after a handler throws. */
+    void dispatchSaveActions(Runnable accelerator, Runnable button) {
+        if (!Platform.isFxApplicationThread()) {
+            throw new IllegalStateException(UPLOAD.SAVE_FAILED);
+        }
+        if (accelerator != null) {
+            accelerator.run();
+            logger.debug(UPLOAD.SAVE_LOG.formatted(UPLOAD.SAVE_ACCELERATOR));
+            return;
+        }
+        if (button != null) {
+            button.run();
+            logger.debug(UPLOAD.SAVE_LOG.formatted(UPLOAD.SAVE_BUTTON));
+            return;
+        }
+        if (DataServerCommands.SAVE.name().equals(commandProperty.get())) {
+            commandProperty.set(DataServerCommands.DONE.name());
+        }
         commandProperty.set(DataServerCommands.SAVE.name());
+        logger.debug(UPLOAD.SAVE_LOG.formatted(UPLOAD.SAVE_COMMAND));
     }
 
     @Override

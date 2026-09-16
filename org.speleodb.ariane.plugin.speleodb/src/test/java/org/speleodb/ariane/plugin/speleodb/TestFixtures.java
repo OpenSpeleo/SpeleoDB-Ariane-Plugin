@@ -1,6 +1,11 @@
 package org.speleodb.ariane.plugin.speleodb;
 
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.zip.CRC32;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
@@ -19,6 +24,37 @@ import jakarta.json.JsonObject;
  * Includes checksum verification for round-trip testing integrity
  */
 public class TestFixtures {
+
+    static byte[] createZipBytes(int method, String... names) throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
+            for (String name : names) {
+                byte[] data = name.endsWith("/") ? new byte[0]
+                        : ("<survey>" + name + "</survey>\r\n\u0000\u00ff").getBytes(StandardCharsets.UTF_8);
+                ZipEntry entry = new ZipEntry(name);
+                entry.setMethod(method);
+                if (method == ZipEntry.STORED) {
+                    CRC32 crc = new CRC32();
+                    crc.update(data);
+                    entry.setSize(data.length);
+                    entry.setCrc(crc.getValue());
+                }
+                zip.putNextEntry(entry);
+                zip.write(data);
+                zip.closeEntry();
+            }
+        }
+        return bytes.toByteArray();
+    }
+
+    static int zipCentralDirectoryOffset(byte[] zip) {
+        for (int i = 0; i < zip.length - 3; i++) {
+            if (zip[i] == 0x50 && zip[i + 1] == 0x4b && zip[i + 2] == 1 && zip[i + 3] == 2) {
+                return i;
+            }
+        }
+        throw new IllegalArgumentException("No central directory");
+    }
 
     private static final Random random = new Random();
     private static final String testRunId = String.valueOf(System.currentTimeMillis());
@@ -330,44 +366,9 @@ public class TestFixtures {
             }
         }
 
-        /**
-         * Generate synthetic TML content for testing (legacy method)
-         */
+        /** Standard fixtures also use a complete survey ZIP; binary archives must never round-trip through String. */
         private Path generateSyntheticTmlFile(String projectId) throws IOException {
-            String arianeRootDir = PATHS.SDB_PROJECT_DIR;
-            Path arianeDir = Path.of(arianeRootDir);
-
-            // Ensure directory exists
-            if (!Files.exists(arianeDir)) {
-                Files.createDirectories(arianeDir);
-            }
-
-            Path tmlFile = arianeDir.resolve(projectId + PATHS.TML_FILE_EXTENSION);
-
-            // Create TML content based on fixture type
-            String tmlContent = generateTmlContent();
-
-            Files.write(tmlFile, tmlContent.getBytes());
-            return tmlFile;
-        }
-
-        /**
-         * Generate TML content based on fixture configuration
-         * Now reads from the empty_project.tml template instead of generating synthetic content
-         */
-        private String generateTmlContent() {
-            // Read the template file that the actual application uses
-            try (var templateStream = TestFixtures.class.getResourceAsStream(PATHS.EMPTY_TML)) {
-                if (templateStream == null) {
-                    throw new RuntimeException("Template file `" + PATHS.EMPTY_TML + "` not found in resources");
-                }
-
-                // Read the template content
-                return new String(templateStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to read `" + PATHS.EMPTY_TML + "` template: " + e.getMessage(), e);
-            }
+            return copyTestTmlFile(projectId);
         }
     }
 

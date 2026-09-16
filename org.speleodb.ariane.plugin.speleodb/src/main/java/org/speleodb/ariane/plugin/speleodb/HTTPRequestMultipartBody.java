@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -74,6 +73,14 @@ public class HTTPRequestMultipartBody {
          */
         public Builder addPart(String fieldName, File file, String contentType, String filename) {
             parts.add(new PartRecord(fieldName, null, file, contentType, filename));
+            return this;
+        }
+
+        /** Adds already captured binary content, defensively owned by this builder. */
+        public Builder addPart(String fieldName, byte[] bytes, String contentType, String filename) {
+            PartRecord part = new PartRecord(fieldName, null, null, contentType, filename);
+            part.bytes = bytes.clone();
+            parts.add(part);
             return this;
         }
 
@@ -154,11 +161,10 @@ public class HTTPRequestMultipartBody {
                 }
 
                 // Write file content directly - no extra CRLF needed
-                Path filePath = record.getFile().toPath();
-                byte[] fileBytes = Files.readAllBytes(filePath);
+                byte[] fileBytes = record.bytes != null ? record.bytes : Files.readAllBytes(record.getFile().toPath());
                 out.write(fileBytes);
             } catch (IOException copyException) {
-                throw new IOException(MESSAGES.ERROR_COPYING_FILE_CONTENT + record.getFile().getName(), copyException);
+                throw new IOException(MESSAGES.ERROR_COPYING_FILE_CONTENT + record.getFilename(), copyException);
             }
         }
 
@@ -187,6 +193,7 @@ public class HTTPRequestMultipartBody {
         private final File file;
         private final String contentType;
         private final String filename;
+        private byte[] bytes;
 
         public PartRecord(String fieldName, String value, File file, String contentType, String filename) {
             this.fieldName = fieldName;
@@ -202,6 +209,6 @@ public class HTTPRequestMultipartBody {
         public String getContentType() { return contentType; }
         public String getFilename() { return filename; }
 
-        public boolean isFile() { return file != null; }
+        public boolean isFile() { return file != null || bytes != null; }
     }
 }
