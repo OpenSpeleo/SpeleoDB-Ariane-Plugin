@@ -58,6 +58,10 @@ Defined in `.github/workflows/gradle.yml`:
 4. `./gradlew build test`
 5. Separate job: dependency graph submission for Dependabot
 
+Version tags (`YYYY.MM.DD`) create a draft release titled
+`v{tag} - SpeleoDB Ariane Plugin`, for example
+`v2026.09.16 - SpeleoDB Ariane Plugin`.
+
 Pre-commit hooks (submodule-level): trailing whitespace, EOF fixer,
 JSON/XML/YAML checks, private key detection.
 

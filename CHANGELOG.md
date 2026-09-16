@@ -26,6 +26,8 @@ details are intentionally omitted.
 
 ## v2026.04.19
 
+- Transition to SpeleoDB API v2
+
 ## v2026.04.15
 
 ### Fixes

@@ -10,7 +10,8 @@ repositories {
 }
 
 // Store the CalVer version as a project property (available during configuration)
-ext.calVerVersion = new Date().format('yyyy.MM.dd')
+ext.calVerVersion = providers.gradleProperty('releaseVersion')
+        .getOrElse(new Date().format('yyyy.MM.dd'))
 
 // Java 25 toolchain + source/target compatibility are declared once in the root
 // `subprojects {}` block so all submodules stay in lockstep. Don't redeclare here.
