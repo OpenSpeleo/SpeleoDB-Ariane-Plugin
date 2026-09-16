@@ -10,10 +10,16 @@ details are intentionally omitted.
 
 ### UI/UX
 
+### Performance
+
+### Fixes
+
+## v2026.09.16
+
+### UI/UX
+
 - Read-only projects now open their project tab with disabled actions, a
   forbidden icon, and a clear modification warning. `7dc5b9e`
-
-### Performance
 
 ### Fixes
 
