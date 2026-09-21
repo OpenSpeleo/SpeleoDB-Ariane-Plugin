@@ -1,6 +1,7 @@
 package org.speleodb.ariane.plugin.speleodb;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -292,9 +293,7 @@ public class TestFixturesTest {
         assertNotEquals(fixture2.getName(), fixture3.getName(), "Fixtures should have unique names");
         assertNotEquals(fixture1.getName(), fixture3.getName(), "Fixtures should have unique names");
 
-        // All should contain the same test run ID though
-        String testRunId = String.valueOf(System.currentTimeMillis());
-        // Note: Due to timing, this might not be exactly the same, but they should all contain "Test"
+        // All fixtures should contain the shared Test marker.
         assertTrue(fixture1.getName().contains("Test"), "All fixtures should contain Test marker");
         assertTrue(fixture2.getName().contains("Test"), "All fixtures should contain Test marker");
         assertTrue(fixture3.getName().contains("Test"), "All fixtures should contain Test marker");
@@ -347,7 +346,7 @@ public class TestFixturesTest {
         // Create a test file with known content
         Path testFile = tempDir.resolve("checksum-test.txt");
         String testContent = "This is a test file for checksum calculation.\nLine 2\nLine 3";
-        Files.write(testFile, testContent.getBytes());
+        Files.write(testFile, testContent.getBytes(StandardCharsets.UTF_8));
 
         // Calculate checksum
         String checksum = TestFixtures.calculateChecksum(testFile);
@@ -374,14 +373,14 @@ public class TestFixturesTest {
         Path file1 = tempDir.resolve("file1.txt");
         Path file2 = tempDir.resolve("file2.txt");
 
-        Files.write(file1, testContent.getBytes());
-        Files.write(file2, testContent.getBytes());
+        Files.write(file1, testContent.getBytes(StandardCharsets.UTF_8));
+        Files.write(file2, testContent.getBytes(StandardCharsets.UTF_8));
 
         // Verify they have the same checksum
         assertTrue(TestFixtures.verifyChecksum(file1, file2), "Identical files should have matching checksums");
 
         // Modify one file and verify checksums differ
-        Files.write(file2, (testContent + " modified").getBytes());
+        Files.write(file2, (testContent + " modified").getBytes(StandardCharsets.UTF_8));
         assertFalse(TestFixtures.verifyChecksum(file1, file2), "Different files should have different checksums");
 
         System.out.println("✓ Checksum verification working correctly");

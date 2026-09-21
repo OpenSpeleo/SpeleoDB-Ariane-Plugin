@@ -47,14 +47,9 @@ public class SpeleoDBAPITest {
     private static boolean skipTests = false;
 
     // Test configuration
-    private static final int API_TIMEOUT_SECONDS = 30;
     private static final int RETRY_COUNT = 3;
 
     private static SpeleoDBPlugin testPlugin;
-
-    private static String capturedURL;
-    private static String capturedHeaders;
-    private static String capturedBody;
 
     @BeforeAll
     static void setupEnvironment() {
@@ -104,11 +99,6 @@ public class SpeleoDBAPITest {
 
         // Create real service instance without server communication
         service = new SpeleoDBService(testController);
-
-        // Reset captured values
-        capturedURL = null;
-        capturedHeaders = null;
-        capturedBody = null;
     }
 
     /**
@@ -157,7 +147,6 @@ public class SpeleoDBAPITest {
         assumeFalse(skipTests, "API tests are disabled or misconfigured");
 
         String oauthToken = TestEnvironmentConfig.get(TestEnvironmentConfig.SPELEODB_OAUTH_TOKEN);
-        String instanceUrl = TestEnvironmentConfig.get(TestEnvironmentConfig.SPELEODB_INSTANCE_URL);
 
         if (oauthToken != null && !oauthToken.isEmpty()) {
             System.out.println("Testing OAuth authentication...");
@@ -217,9 +206,6 @@ public class SpeleoDBAPITest {
         String instanceUrl = TestEnvironmentConfig.get(TestEnvironmentConfig.SPELEODB_INSTANCE_URL);
 
         System.out.println("Testing authentication with invalid credentials...");
-
-        // Store current authentication state
-        boolean wasAuthenticated = service.isAuthenticated();
 
         // Logout temporarily to test invalid credentials
         service.logout();

@@ -217,10 +217,10 @@ class NewProjectDialogTest {
 
         // Mock CountryItem for testing
         private static class CountryItemTest {
-            public final String code;
-            public final String name;
+            final String code;
+            final String name;
 
-            public CountryItemTest(String code, String name) {
+            CountryItemTest(String code, String name) {
                 this.code = code;
                 this.name = name;
             }

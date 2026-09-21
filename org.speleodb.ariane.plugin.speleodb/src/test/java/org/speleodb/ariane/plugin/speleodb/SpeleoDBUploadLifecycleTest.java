@@ -92,7 +92,7 @@ class SpeleoDBUploadLifecycleTest {
     @Test
     @DisplayName("Duplicate requests schedule just one save and upload; completion releases the guard")
     void duplicateRequests() throws Exception {
-        try (var fx = mockStatic(Platform.class)) {
+        try (var _ = mockStatic(Platform.class)) {
             upload.invoke(controller, "message");
             upload.invoke(controller, "second message");
             assertThat(inProgress).isTrue();
@@ -108,7 +108,7 @@ class SpeleoDBUploadLifecycleTest {
     @DisplayName("Executor rejection releases the guard without dispatching a save")
     void executorRejected() throws Exception {
         doThrow(new RejectedExecutionException()).when(executor).execute(any());
-        try (var fx = mockStatic(Platform.class)) {
+        try (var _ = mockStatic(Platform.class)) {
             upload.invoke(controller, "message");
             assertThat(inProgress).isFalse();
         }
@@ -125,7 +125,7 @@ class SpeleoDBUploadLifecycleTest {
             default -> new NotModifiedException("unchanged");
         };
         doThrow(failure).when(service).uploadProject(anyString(), any(), any(), any(BooleanSupplier.class));
-        try (var fx = mockStatic(Platform.class)) {
+        try (var _ = mockStatic(Platform.class)) {
             upload.invoke(controller, "message");
             workers.getFirst().run();
             assertThat(inProgress).isFalse();
@@ -135,7 +135,7 @@ class SpeleoDBUploadLifecycleTest {
     @Test
     @DisplayName("A project change before the worker starts prevents save and upload")
     void projectChanged() throws Exception {
-        try (var fx = mockStatic(Platform.class)) {
+        try (var _ = mockStatic(Platform.class)) {
             upload.invoke(controller, "message");
             set("currentProject", Json.createObjectBuilder().add("id", "different").build());
             workers.getFirst().run();
@@ -149,7 +149,7 @@ class SpeleoDBUploadLifecycleTest {
     @ValueSource(strings = {"survey", "source"})
     @DisplayName("A host survey or source change before the worker prevents save and upload")
     void hostContextChangedBeforeWorker(String change) throws Exception {
-        try (var fx = mockStatic(Platform.class)) {
+        try (var _ = mockStatic(Platform.class)) {
             upload.invoke(controller, "message");
             if (change.equals("survey")) {
                 when(plugin.getSurvey()).thenReturn(mock(CaveSurveyInterface.class));
@@ -173,7 +173,7 @@ class SpeleoDBUploadLifecycleTest {
             assertThat(valid.getAsBoolean()).isFalse();
             return CompletableFuture.failedFuture(new IllegalStateException("survey changed"));
         });
-        try (var fx = mockStatic(Platform.class)) {
+        try (var _ = mockStatic(Platform.class)) {
             upload.invoke(controller, "message");
             workers.getFirst().run();
             assertThat(inProgress).isFalse();
@@ -188,7 +188,7 @@ class SpeleoDBUploadLifecycleTest {
             when(plugin.getSurvey()).thenReturn(mock(CaveSurveyInterface.class));
             return CompletableFuture.completedFuture(null);
         });
-        try (var fx = mockStatic(Platform.class)) {
+        try (var _ = mockStatic(Platform.class)) {
             upload.invoke(controller, "message");
             workers.getFirst().run();
         }
@@ -211,7 +211,7 @@ class SpeleoDBUploadLifecycleTest {
             assertThat(valid.getAsBoolean()).isFalse();
             return null;
         }).when(service).uploadProject(anyString(), any(), any(), any(BooleanSupplier.class));
-        try (var fx = mockStatic(Platform.class)) {
+        try (var _ = mockStatic(Platform.class)) {
             upload.invoke(controller, "message");
             workers.getFirst().run();
         }
@@ -236,7 +236,8 @@ class SpeleoDBUploadLifecycleTest {
         }
         when(plugin.getSurveyFile()).thenReturn(mode.equals("null") ? null : active.toFile());
         when(plugin.getSurvey()).thenReturn(mock(CaveSurveyInterface.class));
-        when(plugin.getCommandProperty()).thenReturn(new SimpleStringProperty());
+        var command = new SimpleStringProperty();
+        when(plugin.getCommandProperty()).thenReturn(command);
         AtomicBoolean runNextFx = new AtomicBoolean();
         try (var fx = mockStatic(Platform.class); var modals = mockStatic(SpeleoDBModals.class)) {
             modals.when(() -> SpeleoDBModals.showConfirmation(anyString(), anyString(), anyString(), anyString()))
@@ -271,11 +272,11 @@ class SpeleoDBUploadLifecycleTest {
         }
         if (mode.equals("active") || mode.equals("null")) {
             verify(plugin).setSurveyFile((mode.equals("active") ? active : canonical).toFile());
-            assertThat(plugin.getCommandProperty().get()).isEqualTo("LOAD");
+            assertThat(command.get()).isEqualTo("LOAD");
             assertThat(Files.readAllBytes(active)).isEqualTo(savedBytes);
         } else {
             verify(plugin, times(0)).setSurveyFile(any());
-            assertThat(plugin.getCommandProperty().get()).isNull();
+            assertThat(command.get()).isNull();
         }
     }
 
@@ -343,7 +344,7 @@ class SpeleoDBUploadLifecycleTest {
         var queuedFx = new java.util.ArrayDeque<Runnable>();
         AtomicBoolean dispatchInline = new AtomicBoolean();
         try (var fx = mockStatic(Platform.class); var modals = mockStatic(SpeleoDBModals.class);
-                var tooltips = mockStatic(SpeleoDBTooltips.class)) {
+                var _ = mockStatic(SpeleoDBTooltips.class)) {
             fx.when(() -> Platform.runLater(any())).thenAnswer(call -> {
                 Runnable action = call.getArgument(0);
                 if (dispatchInline.compareAndSet(true, false)) {
@@ -397,7 +398,7 @@ class SpeleoDBUploadLifecycleTest {
     void interruptedSave() throws Exception {
         CompletableFuture<Void> pending = new CompletableFuture<>();
         when(plugin.requestSurveySave(any(BooleanSupplier.class))).thenReturn(pending);
-        try (var fx = mockStatic(Platform.class)) {
+        try (var _ = mockStatic(Platform.class)) {
             upload.invoke(controller, "message");
             Thread.currentThread().interrupt();
             try {
@@ -419,7 +420,7 @@ class SpeleoDBUploadLifecycleTest {
         CompletableFuture<Void> pending = mock(CompletableFuture.class);
         when(pending.get(org.mockito.ArgumentMatchers.anyLong(), any(TimeUnit.class))).thenThrow(new TimeoutException());
         when(plugin.requestSurveySave(any(BooleanSupplier.class))).thenReturn(pending);
-        try (var fx = mockStatic(Platform.class)) {
+        try (var _ = mockStatic(Platform.class)) {
             upload.invoke(controller, "message");
             workers.getFirst().run();
             assertThat(inProgress).isFalse();

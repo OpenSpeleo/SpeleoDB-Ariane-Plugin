@@ -5,6 +5,8 @@ plugins {
 application {
   mainModule = 'com.arianesline.plugincontainer'
   mainClass = 'com.arianesline.plugincontainer.PluginContainerApplication'
+  // JavaFX loads native libraries for graphics, WebView, and media on Java 25.
+  applicationDefaultJvmArgs = ['--enable-native-access=javafx.graphics,javafx.web,javafx.media']
 }
 
 dependencies {

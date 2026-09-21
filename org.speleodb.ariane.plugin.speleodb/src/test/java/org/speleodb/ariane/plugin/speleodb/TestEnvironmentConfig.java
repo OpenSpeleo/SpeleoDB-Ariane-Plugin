@@ -72,10 +72,10 @@ public class TestEnvironmentConfig {
             return;
         }
 
-        try {
+        try (var lines = Files.lines(envFile)) {
             System.out.println("OK: Loading .env file from: " + envFile);
 
-            Files.lines(envFile)
+            lines
                 .filter(line -> !line.trim().isEmpty())
                 .filter(line -> !line.trim().startsWith("#"))
                 .forEach(line -> {

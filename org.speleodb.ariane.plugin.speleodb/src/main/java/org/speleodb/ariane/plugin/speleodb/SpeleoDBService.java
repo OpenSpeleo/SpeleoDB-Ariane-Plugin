@@ -17,6 +17,7 @@ import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -403,6 +404,8 @@ public class SpeleoDBService {
         uploadProject(message, project, source, () -> true);
     }
 
+    // The captured HTTP client must still be the exact client for this session.
+    @SuppressWarnings("ReferenceEquality")
     void uploadProject(String message, JsonObject project, Path source, BooleanSupplier contextValid)
             throws Exception {
         String sanitizedMessage = validateUploadMessage(message);
@@ -496,16 +499,16 @@ public class SpeleoDBService {
 
         Path tmlFilepath = Paths.get(PATHS.SDB_PROJECT_DIR + File.separator + sdbProjectId + PATHS.TML_FILE_EXTENSION);
 
-        switch (response.statusCode()) {
+        return switch (response.statusCode()) {
             case HTTP_STATUS.OK -> {
                 // Successful download - save the file
                 Files.write(tmlFilepath, response.body(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                return tmlFilepath;
+                yield tmlFilepath;
             }
             case HTTP_STATUS.UNPROCESSABLE_ENTITY -> {
                 // HTTP 422: Project exists but is empty - create empty TML file.
                 logger.info(MESSAGES.PROJECT_DOWNLOAD_404_EMPTY);
-                return createEmptyTmlFileFromTemplate(sdbProjectId, project.getString(JSON_FIELDS.NAME, "Unknown Project"));
+                yield createEmptyTmlFileFromTemplate(sdbProjectId, project.getString(JSON_FIELDS.NAME, "Unknown Project"));
             }
             default -> {
                 String body = decodeUtf8(response.body());
@@ -515,7 +518,7 @@ public class SpeleoDBService {
                         + " for project: " + project.getString(JSON_FIELDS.NAME, "Unknown Project"));
                 throw new RuntimeException(errorMessage);
             }
-        }
+        };
     }
 
     /**
@@ -654,7 +657,7 @@ public class SpeleoDBService {
                         if (expiresAt != null && !expiresAt.isEmpty()) {
                             try {
                                 java.time.LocalDate expiryDate = java.time.LocalDate.parse(expiresAt);
-                                java.time.LocalDate today = java.time.LocalDate.now();
+                                java.time.LocalDate today = java.time.LocalDate.now(ZoneId.systemDefault());
                                 return !expiryDate.isBefore(today);
                             } catch (java.time.format.DateTimeParseException e) {
                                 logger.warn("Failed to parse expires_at field: `" + expiresAt + "`.");

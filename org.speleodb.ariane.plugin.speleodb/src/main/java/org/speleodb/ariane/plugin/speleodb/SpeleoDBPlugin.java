@@ -145,12 +145,12 @@ public class SpeleoDBPlugin implements DataServerPlugin {
                         String target = (tgt != null) ? tgt.getClass().getName() : "unknown";
                         String source = (src != null) ? src.getClass().getName() : "unknown";
                         String type = (evt.getEventType() != null) ? evt.getEventType().getName() : "unknown";
-                        String nodeId = (tgt instanceof javafx.scene.Node) ? ((javafx.scene.Node) tgt).getId() : null;
+                        String nodeId = (tgt instanceof javafx.scene.Node node) ? node.getId() : null;
                         String text = null;
-                        if (tgt instanceof javafx.scene.control.Labeled) {
-                            text = ((javafx.scene.control.Labeled) tgt).getText();
-                        } else if (tgt instanceof javafx.scene.control.TextInputControl) {
-                            text = ((javafx.scene.control.TextInputControl) tgt).getText();
+                        if (tgt instanceof javafx.scene.control.Labeled labeled) {
+                            text = labeled.getText();
+                        } else if (tgt instanceof javafx.scene.control.TextInputControl textInputControl) {
+                            text = textInputControl.getText();
                         }
                         logger.info("FX EVENT: type=" + type +
                                     ", target=" + target +

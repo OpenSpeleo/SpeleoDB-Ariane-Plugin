@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -77,7 +78,7 @@ class SpeleoDBPluginExtendedTest {
         @Test
         @DisplayName("Should handle timeout calculation")
         void shouldHandleTimeoutCalculation() {
-            LocalDateTime start = LocalDateTime.now();
+            LocalDateTime start = LocalDateTime.now(ZoneId.systemDefault());
 
             // Simulate a very short operation (should be under timeout)
             try {
@@ -86,12 +87,13 @@ class SpeleoDBPluginExtendedTest {
                 Thread.currentThread().interrupt();
             }
 
-            Duration elapsed = Duration.between(start, LocalDateTime.now());
+            Duration elapsed = Duration.between(start, LocalDateTime.now(ZoneId.systemDefault()));
             assertThat(elapsed.toMillis()).isLessThan(SpeleoDBPlugin.TIMEOUT);
         }
 
         @Test
         @DisplayName("Should handle atomic boolean lock mechanism")
+        @SuppressWarnings("UnnecessaryAsync") // This test explicitly exercises atomic operations.
         void shouldHandleAtomicBooleanLockMechanism() {
             AtomicBoolean lock = new AtomicBoolean(false);
 

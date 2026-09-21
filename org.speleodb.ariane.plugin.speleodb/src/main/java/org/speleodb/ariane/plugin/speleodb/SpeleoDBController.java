@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
@@ -248,7 +249,7 @@ public class SpeleoDBController implements Initializable {
         }
 
         Timeline delay = createTrackedTimeline(
-            new KeyFrame(Duration.millis(delayMillis), e -> {
+            new KeyFrame(Duration.millis((double) delayMillis), e -> {
                 try {
                     // Ariane's REDRAW handler warns when the survey is empty.
                     // Check at dispatch time, including the second delayed redraw.
@@ -386,8 +387,6 @@ public class SpeleoDBController implements Initializable {
         }
     }
 
-
-
     /**
      * Shows a success animation overlay with customizable message.
      *
@@ -485,10 +484,10 @@ public class SpeleoDBController implements Initializable {
 
         String message = exception.getMessage();
         if (message == null) message = "";
-        message = message.toLowerCase();
+        message = message.toLowerCase(Locale.ROOT);
 
         // Check exception type
-        String exceptionType = exception.getClass().getSimpleName().toLowerCase();
+        String exceptionType = exception.getClass().getSimpleName().toLowerCase(Locale.ROOT);
 
         // Connection refused, host unreachable, network errors
         return message.contains("connection refused") ||
@@ -515,10 +514,10 @@ public class SpeleoDBController implements Initializable {
 
         String message = exception.getMessage();
         if (message == null) message = "";
-        message = message.toLowerCase();
+        message = message.toLowerCase(Locale.ROOT);
 
         // Check exception type
-        String exceptionType = exception.getClass().getSimpleName().toLowerCase();
+        String exceptionType = exception.getClass().getSimpleName().toLowerCase(Locale.ROOT);
 
         // Various timeout conditions
         return message.contains("timed out") ||
@@ -581,19 +580,6 @@ public class SpeleoDBController implements Initializable {
         return instance + String.format(API.WEB_UPLOAD_PATH, projectId);
     }
 
-    /**
-     * Returns the web-upload fallback URL for the current project,
-     * or null if state is unavailable.
-     */
-    private String getUploadUrl() {
-        try {
-            return buildUploadUrl(speleoDBService.getSDBInstance(),
-                                  currentProject.getString(JSON_FIELDS.ID));
-        } catch (Exception ignored) {
-            return null;
-        }
-    }
-
     // ====================== INPUT VALIDATION METHODS ====================== //
 
     /**
@@ -609,7 +595,7 @@ public class SpeleoDBController implements Initializable {
         }
 
         // Remove any whitespace and convert to lowercase for validation
-        String cleanToken = token.trim().toLowerCase();
+        String cleanToken = token.trim().toLowerCase(Locale.ROOT);
 
         // Regex pattern: exactly 40 hexadecimal characters
         String oauthPattern = "^[a-f0-9]{40}$";
@@ -692,8 +678,6 @@ public class SpeleoDBController implements Initializable {
             }
         }
     }
-
-
 
     // ==================== UI INITIALIZATION FUNCTIONS ==================== //
 
@@ -1102,7 +1086,7 @@ public class SpeleoDBController implements Initializable {
                 String target = (tgt != null) ? tgt.getClass().getName() : "unknown";
                 String source = (src != null) ? src.getClass().getName() : "unknown";
                 String type = (evt.getEventType() != null) ? evt.getEventType().getName() : "unknown";
-                String nodeId = (tgt instanceof javafx.scene.Node) ? ((javafx.scene.Node) tgt).getId() : null;
+                String nodeId = (tgt instanceof javafx.scene.Node node) ? node.getId() : null;
                 String text = null;
                 switch (tgt) {
                     case null -> {}
@@ -1631,7 +1615,7 @@ public class SpeleoDBController implements Initializable {
             // Sort projects based on current sort mode
             if (currentSortMode == SortMode.BY_NAME) {
                 projects.sort(Comparator.comparing(project ->
-                    project.getString("name", "").toLowerCase()));
+                    project.getString("name", "").toLowerCase(Locale.ROOT)));
                 logger.debug("Projects sorted by name (A-Z)");
             } else { // BY_DATE
                 projects.sort(Comparator.comparing((JsonObject project) ->
@@ -1850,8 +1834,6 @@ public class SpeleoDBController implements Initializable {
         }
     }
 
-
-
     // -------------------------- Project Opening -------------------------- //
 
     private void clickSpeleoDBProject(ActionEvent e) throws URISyntaxException, IOException, InterruptedException {
@@ -1904,24 +1886,6 @@ public class SpeleoDBController implements Initializable {
 
             downloadAndLoadProject(project, hasWriteAccess);
         });
-    }
-
-    /**
-     * Gets the access level for a project from its permission field.
-     *
-     * @param project the project JSON object
-     * @return the AccessLevel enum value
-     */
-    private AccessLevel getProjectAccessLevel(JsonObject project) {
-        String permissionString = project.getString("permission", "READ_ONLY");
-        try {
-            return AccessLevel.valueOf(permissionString);
-        } catch (IllegalArgumentException ex) {
-            // Default to READ_ONLY if permission string is invalid
-            logger.info("Invalid permission '" + permissionString + "' for project " +
-                      project.getString("name") + ", defaulting to read-only");
-            return AccessLevel.READ_ONLY;
-        }
     }
 
     /**
@@ -2105,10 +2069,10 @@ public class SpeleoDBController implements Initializable {
                 dispatched.get(TIMINGS.FILE_STABILITY_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
 
                 // Wait for the survey to be loaded (polling with timeout) - same logic as original
-                var start = java.time.LocalDateTime.now();
+                var start = java.time.LocalDateTime.now(ZoneId.systemDefault());
                 final int TIMEOUT = 10000; // 10 seconds timeout
 
-                while (loadingLock.get() && java.time.Duration.between(start, java.time.LocalDateTime.now()).toMillis() < TIMEOUT) {
+                while (loadingLock.get() && java.time.Duration.between(start, java.time.LocalDateTime.now(ZoneId.systemDefault())).toMillis() < TIMEOUT) {
                     try {
                         Thread.sleep(50); // Same 50ms interval as original
 
@@ -2291,6 +2255,8 @@ public class SpeleoDBController implements Initializable {
         Platform.runLater(() -> setUILoadingState(false));
     }
 
+    // A replacement survey must invalidate the upload even if it compares equal.
+    @SuppressWarnings("ReferenceEquality")
     private boolean projectContextValid(JsonObject project, long generation, CaveSurveyInterface survey) {
         return !shutdownInProgress && generation == speleoDBService.sessionGeneration()
                 && Objects.equals(currentProject, project) && parentPlugin.getSurvey() == survey;
@@ -2779,13 +2745,8 @@ public class SpeleoDBController implements Initializable {
      *
      * @param project the project to release lock for
      * @param context description of the operation context
-     * @param onSuccess callback to execute on successful lock release (optional)
-     * @param onFailure callback to execute on failed lock release (optional)
-     * @param showModals whether to show error modals for network issues
      */
     private LockReleaseResult releaseProjectLockWithUI(JsonObject project, String context) throws InterruptedException {
-
-        final String selectedProjectName = project.getString("name");
 
         LockReleaseResult result = releaseProjectLock(project, context);
 
@@ -2829,18 +2790,6 @@ public class SpeleoDBController implements Initializable {
 
             return LockReleaseResult.failure(project, "Failed to Release Lock");
         }
-    }
-
-    /**
-     * Simple boolean wrapper for lock release operations.
-     * Use this when you only need to know if the release succeeded or failed.
-     *
-     * @param project the project to release lock for
-     * @param context description of the operation context
-     * @return true if lock was successfully released, false otherwise
-     */
-    private boolean tryReleaseProjectLock(JsonObject project, String context) {
-        return releaseProjectLock(project, context).isReleased();
     }
 
     /**
@@ -2890,8 +2839,6 @@ public class SpeleoDBController implements Initializable {
      *
      * @param project the project to acquire lock for
      * @param context description of the operation context
-     * @param onSuccess callback to execute on successful lock acquisition (optional)
-     * @param onFailure callback to execute on failed lock acquisition (optional)
      * @param showModals whether to show error modals for network issues
      */
     private Boolean acquireProjectLockWithUI(JsonObject project, String context, boolean showModals) {
@@ -3239,7 +3186,7 @@ public class SpeleoDBController implements Initializable {
                     String entryName = entry.getName();
 
                     // Check if entry is in our GIFs directory and is a .gif file
-                    if (entryName.startsWith(dirPath) && entryName.toLowerCase().endsWith(".gif") && !entry.isDirectory()) {
+                    if (entryName.startsWith(dirPath) && entryName.toLowerCase(Locale.ROOT).endsWith(".gif") && !entry.isDirectory()) {
                         String resourcePath = "/" + entryName;
                         gifPaths.add(resourcePath);
                         logger.debug("Found success GIF in JAR: " + resourcePath);
@@ -3257,7 +3204,7 @@ public class SpeleoDBController implements Initializable {
     private void scanGifsFromFileSystem(java.net.URL resourceUrl, java.util.List<String> gifPaths) {
         try {
             java.io.File directory = new java.io.File(resourceUrl.toURI());
-            java.io.File[] files = directory.listFiles((dir, name) -> name.toLowerCase().endsWith(".gif"));
+            java.io.File[] files = directory.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".gif"));
 
             if (files != null) {
                 for (java.io.File file : files) {
@@ -3766,8 +3713,8 @@ public class SpeleoDBController implements Initializable {
         if (version1 == null) return -1;
         if (version2 == null) return 1;
 
-        String[] parts1 = version1.split("\\.");
-        String[] parts2 = version2.split("\\.");
+        String[] parts1 = version1.split("\\.", 0);
+        String[] parts2 = version2.split("\\.", 0);
 
         int maxLength = Math.max(parts1.length, parts2.length);
 

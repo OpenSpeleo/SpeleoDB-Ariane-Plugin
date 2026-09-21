@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,7 +35,6 @@ import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonValue;
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
 
 /**
  * Comprehensive unit tests for SpeleoDBController logic using JUnit 5, Mockito, and AssertJ.
@@ -49,9 +49,6 @@ class SpeleoDBControllerTest {
 
     @Mock
     private Desktop mockDesktop;
-
-    @Mock
-    private ActionEvent mockActionEvent;
 
     private SpeleoDBControllerLogic controllerLogic;
 
@@ -250,7 +247,7 @@ class SpeleoDBControllerTest {
         void shouldDetectDebugModeFromPropertiesFile() throws IOException {
             // Create debug.properties file
             Path debugProps = tempDir.resolve("debug.properties");
-            Files.write(debugProps, "debug.mode=true\n".getBytes());
+            Files.write(debugProps, "debug.mode=true\n".getBytes(StandardCharsets.UTF_8));
 
             controllerLogic.setDebugPropertiesPath(debugProps.toString());
 
@@ -284,6 +281,7 @@ class SpeleoDBControllerTest {
 
         @Test
         @DisplayName("Should increment message counter atomically")
+        @SuppressWarnings("UnnecessaryAsync") // This test explicitly exercises atomic operations.
         void shouldIncrementMessageCounterAtomically() {
             AtomicInteger counter = new AtomicInteger(0);
 

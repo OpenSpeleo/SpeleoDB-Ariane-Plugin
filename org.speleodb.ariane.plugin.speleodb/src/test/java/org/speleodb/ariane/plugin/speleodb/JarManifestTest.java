@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
@@ -93,7 +94,7 @@ class JarManifestTest {
             Enumeration<JarEntry> entries = jf.entries();
             while (entries.hasMoreElements()) {
                 JarEntry entry = entries.nextElement();
-                assertThat(entry.getName().toLowerCase())
+                assertThat(entry.getName().toLowerCase(Locale.ROOT))
                         .as("no PSD asset should be packaged: " + entry.getName())
                         .doesNotEndWith(".psd");
             }

@@ -178,7 +178,7 @@ class SpeleoDBPluginReleasesApiTest extends AbstractSpeleoDBServiceWireMockTest 
 
     /** Returns {@code current} with the major component bumped by {@code delta} (clamped to >= 0). */
     private static String bumpMajor(String current, int delta) {
-        String[] parts = current.split("\\.");
+        String[] parts = current.split("\\.", 0);
         int major = Integer.parseInt(parts[0]) + delta;
         if (major < 0) {
             major = 0;

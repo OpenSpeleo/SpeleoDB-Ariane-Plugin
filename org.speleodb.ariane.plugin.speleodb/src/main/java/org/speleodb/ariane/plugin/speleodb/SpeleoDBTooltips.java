@@ -2,6 +2,7 @@ package org.speleodb.ariane.plugin.speleodb;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.DIMENSIONS;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.ICONS;
@@ -287,7 +288,7 @@ public class SpeleoDBTooltips {
             hideTimeline.play();
 
         } catch (Exception e) {
-            logger.error("Failed to show " + type.name().toLowerCase() + " tooltip", e);
+            logger.error("Failed to show " + type.name().toLowerCase(Locale.ROOT) + " tooltip", e);
         }
     }
 

@@ -14,7 +14,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.AccessLevel;
 
@@ -25,15 +24,11 @@ import jakarta.json.JsonObject;
 @DisplayName("SpeleoDB Lock Acquisition Tests")
 class SpeleoDBLockAcquisitionTest {
 
-    @Mock
-    private SpeleoDBService mockService;
-
     private TestableSpeleoDBController controller;
 
     @BeforeEach
     void setUp() {
         controller = spy(new TestableSpeleoDBController());
-        controller.setSpeleoDBService(mockService);
     }
 
     @Nested
@@ -361,14 +356,8 @@ class SpeleoDBLockAcquisitionTest {
 
     // Test helper class that extends SpeleoDBController for testing
     static class TestableSpeleoDBController extends SpeleoDBController {
-        private SpeleoDBService speleoDBService;
-
         public TestableSpeleoDBController() {
             super(true); // Use protected constructor for testing
-        }
-
-        public void setSpeleoDBService(SpeleoDBService service) {
-            this.speleoDBService = service;
         }
 
         // Override methods to avoid JavaFX dependencies in tests

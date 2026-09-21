@@ -41,12 +41,8 @@ public class HTTPRequestMultipartBody {
 
     // Multipart constants for byte arrays
     private static final byte[] CRLF = MULTIPART.CRLF.getBytes(StandardCharsets.UTF_8);
-    private static final byte[] QUOTE_CRLF = MULTIPART.QUOTE_CRLF.getBytes(StandardCharsets.UTF_8);
     private static final byte[] CONTENT_TYPE_PREFIX = MULTIPART.CONTENT_TYPE_HEADER.getBytes(StandardCharsets.UTF_8);
     private static final byte[] OCTET_STREAM_HEADER = MULTIPART.OCTET_STREAM_HEADER.getBytes(StandardCharsets.UTF_8);
-
-    // Default MIME type for text fields
-    private final String DEFAULT_MIMETYPE = MULTIPART.DEFAULT_MIMETYPE;
 
     /**
      * Builder class for constructing multipart request bodies
@@ -195,7 +191,7 @@ public class HTTPRequestMultipartBody {
         private final String filename;
         private byte[] bytes;
 
-        public PartRecord(String fieldName, String value, File file, String contentType, String filename) {
+        private PartRecord(String fieldName, String value, File file, String contentType, String filename) {
             this.fieldName = fieldName;
             this.value = value;
             this.file = file;
@@ -203,12 +199,12 @@ public class HTTPRequestMultipartBody {
             this.filename = filename;
         }
 
-        public String getFieldName() { return fieldName; }
-        public String getValue() { return value; }
-        public File getFile() { return file; }
-        public String getContentType() { return contentType; }
-        public String getFilename() { return filename; }
+        private String getFieldName() { return fieldName; }
+        private String getValue() { return value; }
+        private File getFile() { return file; }
+        private String getContentType() { return contentType; }
+        private String getFilename() { return filename; }
 
-        public boolean isFile() { return file != null || bytes != null; }
+        private boolean isFile() { return file != null || bytes != null; }
     }
 }

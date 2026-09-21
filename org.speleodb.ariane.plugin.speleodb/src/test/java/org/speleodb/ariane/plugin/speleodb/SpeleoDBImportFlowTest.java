@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
@@ -130,6 +131,7 @@ class SpeleoDBImportFlowTest {
                 orderingPlugin.setSurvey(new com.arianesline.cavelib.api.CaveSurveyInterface() {
                     @Override public String getExtraData() { return ""; }
                     @Override public void setExtraData(String data) {}
+                    @SuppressWarnings("NonApiType") // The host API requires ArrayList as its return type.
                     @Override public java.util.ArrayList<com.arianesline.cavelib.api.SurveyDataInterface> getSurveyDataInterface() { return new java.util.ArrayList<>(); }
                     @Override public String getDescription() { return ""; }
                     @Override public String getGeoCoding() { return ""; }
@@ -202,7 +204,7 @@ class SpeleoDBImportFlowTest {
         tempTml.deleteOnExit();
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(tempTml))) {
             zos.putNextEntry(new ZipEntry("survey.xml"));
-            zos.write("<tml/>".getBytes());
+            zos.write("<tml/>".getBytes(StandardCharsets.UTF_8));
             zos.closeEntry();
         }
         return tempTml;

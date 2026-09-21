@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -1008,8 +1009,8 @@ class SpeleoDBControllerSortingTest {
 
             if (currentSortMode == SortMode.BY_NAME) {
                 projects.sort((a, b) -> {
-                    String nameA = a.getString("name", "").toLowerCase();
-                    String nameB = b.getString("name", "").toLowerCase();
+                    String nameA = a.getString("name", "").toLowerCase(Locale.ROOT);
+                    String nameB = b.getString("name", "").toLowerCase(Locale.ROOT);
                     return nameA.compareTo(nameB);
                 });
             } else { // BY_DATE

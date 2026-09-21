@@ -42,14 +42,17 @@ class SpeleoDBControllerStateTest {
     static void cleanupTestEnvironment() throws IOException {
         Path testDir = Paths.get(TEST_RESOURCES_DIR);
         if (Files.exists(testDir)) {
-            Files.walk(testDir)
-                .map(Path::toFile)
-                .forEach(File::delete);
+            try (var paths = Files.walk(testDir)) {
+                paths.sorted(java.util.Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+            }
         }
     }
 
     @Test
     @DisplayName("atomic operations")
+    @SuppressWarnings("UnnecessaryAsync") // This test explicitly exercises atomic operations.
     void testAtomicOperations() {
         AtomicBoolean lockAcquired = new AtomicBoolean(false);
         assertThat(lockAcquired.get()).isFalse();
@@ -248,22 +251,22 @@ class SpeleoDBControllerStateTest {
 
         assertThat(shouldShowProjects(isAuthenticated)).isFalse();
         assertThat(shouldEnableUpload(isAuthenticated, hasProject, hasLock)).isFalse();
-        assertThat(shouldEnableUnlock(isAuthenticated, hasProject, hasLock)).isTrue();
+        assertThat(shouldEnableUnlock()).isTrue();
 
         isAuthenticated = true;
         assertThat(shouldShowProjects(isAuthenticated)).isTrue();
         assertThat(shouldEnableUpload(isAuthenticated, hasProject, hasLock)).isFalse();
-        assertThat(shouldEnableUnlock(isAuthenticated, hasProject, hasLock)).isTrue();
+        assertThat(shouldEnableUnlock()).isTrue();
 
         hasProject = true;
         assertThat(shouldShowProjects(isAuthenticated)).isTrue();
         assertThat(shouldEnableUpload(isAuthenticated, hasProject, hasLock)).isFalse();
-        assertThat(shouldEnableUnlock(isAuthenticated, hasProject, hasLock)).isTrue();
+        assertThat(shouldEnableUnlock()).isTrue();
 
         hasLock = true;
         assertThat(shouldShowProjects(isAuthenticated)).isTrue();
         assertThat(shouldEnableUpload(isAuthenticated, hasProject, hasLock)).isTrue();
-        assertThat(shouldEnableUnlock(isAuthenticated, hasProject, hasLock)).isTrue();
+        assertThat(shouldEnableUnlock()).isTrue();
     }
 
     private static boolean shouldShowProjects(boolean isAuthenticated) {
@@ -274,5 +277,5 @@ class SpeleoDBControllerStateTest {
         return isAuthenticated && hasProject && hasLock;
     }
 
-    private static boolean shouldEnableUnlock(boolean isAuthenticated, boolean hasProject, boolean hasLock) { return true; }
+    private static boolean shouldEnableUnlock() { return true; }
 }

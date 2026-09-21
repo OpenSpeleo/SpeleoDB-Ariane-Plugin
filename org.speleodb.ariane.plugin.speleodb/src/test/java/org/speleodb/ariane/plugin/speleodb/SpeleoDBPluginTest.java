@@ -185,8 +185,6 @@ class SpeleoDBPluginTest {
         @Test
         @DisplayName("Should execute save survey operation")
         void shouldExecuteSaveSurveyOperation() {
-            StringProperty commandProperty = plugin.getCommandProperty();
-
             plugin.saveSurvey();
         }
 

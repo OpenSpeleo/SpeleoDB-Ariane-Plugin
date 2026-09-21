@@ -58,10 +58,10 @@ class SpeleoDBControllerIntegrationTest {
 
         private int extractMessageCountFromDiagnostics(String diagnostics) {
             // Extract the message counter value from diagnostics string
-            String[] lines = diagnostics.split("\n");
+            String[] lines = diagnostics.split("\n", 0);
             for (String line : lines) {
                 if (line.contains("Message Counter:")) {
-                    String countStr = line.split(":")[1].trim();
+                    String countStr = line.split(":", 2)[1].trim();
                     return Integer.parseInt(countStr);
                 }
             }
@@ -620,6 +620,7 @@ class SpeleoDBControllerIntegrationTest {
         }
 
         // Mock the UI log method for testing
+        @Override
         public void appendToUILog(String message) {
             // Do nothing - just need this method to exist for logger integration
         }

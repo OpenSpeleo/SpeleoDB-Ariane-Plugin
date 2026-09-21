@@ -1,11 +1,13 @@
 package org.speleodb.ariane.plugin.speleodb;
 
+import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Locale;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,14 +97,14 @@ class SpeleoDBPluginUpdateTest {
 
                 // Test with known data and hash
                 String testData = "Hello, World!";
-                byte[] testDataBytes = testData.getBytes();
+                byte[] testDataBytes = testData.getBytes(StandardCharsets.UTF_8);
                 String expectedHash = "dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f";
 
                 assertTrue((Boolean) method.invoke(controller, testDataBytes, expectedHash));
                 assertFalse((Boolean) method.invoke(controller, testDataBytes, "wrong_hash"));
 
                 // Test case insensitivity
-                assertTrue((Boolean) method.invoke(controller, testDataBytes, expectedHash.toUpperCase()));
+                assertTrue((Boolean) method.invoke(controller, testDataBytes, expectedHash.toUpperCase(Locale.ROOT)));
 
             } catch (Exception e) {
                 throw new RuntimeException("Failed to test hash verification", e);
@@ -116,7 +118,7 @@ class SpeleoDBPluginUpdateTest {
                 var method = SpeleoDBController.class.getDeclaredMethod("verifyFileHash", byte[].class, String.class);
                 method.setAccessible(true);
 
-                byte[] testData = "test".getBytes();
+                byte[] testData = "test".getBytes(StandardCharsets.UTF_8);
 
                 // Test with null hash
                 assertFalse((Boolean) method.invoke(controller, testData, null));

@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
@@ -44,8 +45,8 @@ class SpeleoDBAnnouncementsApiTest extends AbstractSpeleoDBServiceWireMockTest {
     @Test
     @DisplayName("200 with v2 unwrapped array, all four filters applied")
     void successAndFiltering() throws Exception {
-        String futureDate = LocalDate.now().plusDays(30).format(ISO);
-        String pastDate = LocalDate.now().minusDays(1).format(ISO);
+        String futureDate = LocalDate.now(ZoneId.systemDefault()).plusDays(30).format(ISO);
+        String pastDate = LocalDate.now(ZoneId.systemDefault()).minusDays(1).format(ISO);
 
         JsonArray body = Json.createArrayBuilder()
                 .add(announcement("kept-active-ariane-future", true,  "ARIANE", futureDate, null))

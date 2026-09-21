@@ -22,8 +22,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
@@ -36,9 +34,6 @@ import jakarta.json.JsonObject;
 @DisplayName("SpeleoDB Sequential Announcement Display Tests")
 class SpeleoDBAnnouncementSequentialDisplayTest {
 
-    @Mock
-    private SpeleoDBController mockController;
-
     private ExecutorService testExecutor;
 
     // Simulate the displayed announcements tracking by UUID
@@ -46,7 +41,6 @@ class SpeleoDBAnnouncementSequentialDisplayTest {
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
         testExecutor = Executors.newSingleThreadExecutor();
         displayedAnnouncements = new HashMap<>();
     }
@@ -384,7 +378,7 @@ class SpeleoDBAnnouncementSequentialDisplayTest {
             }
 
             CompletableFuture<Void> allFutures = CompletableFuture.allOf(
-                    futures.toArray(new CompletableFuture[0])
+                    futures.toArray(new CompletableFuture<?>[0])
             );
 
             allFutures.get(5, TimeUnit.SECONDS);

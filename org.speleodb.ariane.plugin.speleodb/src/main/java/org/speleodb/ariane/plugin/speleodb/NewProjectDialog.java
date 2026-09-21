@@ -2,7 +2,7 @@ package org.speleodb.ariane.plugin.speleodb;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
@@ -74,7 +74,7 @@ public class NewProjectDialog extends Dialog<NewProjectDialog.ProjectData> {
 
     // Pre-load countries asynchronously when class is first loaded
     static {
-        countryLoader.submit(() -> {
+        countryLoader.execute(() -> {
             try {
                 loadCountriesFromJson();
             } catch (IOException e) {
@@ -89,7 +89,7 @@ public class NewProjectDialog extends Dialog<NewProjectDialog.ProjectData> {
      */
     public static void preLoadCountriesData() {
         // Countries are already loaded in static block, but this ensures it's triggered
-        countryLoader.submit(() -> {
+        countryLoader.execute(() -> {
             try {
                 loadCountriesFromJson(); // Will return immediately if already loaded
             } catch (IOException e) {
@@ -108,17 +108,16 @@ public class NewProjectDialog extends Dialog<NewProjectDialog.ProjectData> {
             if (cachedCountries != null) return; // Double-check
 
             // Load countries from JSON file in resources
-            InputStream inputStream = NewProjectDialog.class.getResourceAsStream(PATHS.COUNTRIES_RESOURCE);
-            if (inputStream == null) {
-                throw new RuntimeException(MESSAGES.COUNTRIES_NOT_FOUND +
-                        NewProjectDialog.class.getPackage().getName().replace('.', '/') + "/" + PATHS.COUNTRIES_RESOURCE);
-            }
-
-            // Read and parse JSON
-            String jsonContent = new String(inputStream.readAllBytes());
             JsonObject countriesObj;
-            try (JsonReader jsonReader = Json.createReader(new StringReader(jsonContent))) {
-                countriesObj = jsonReader.readObject();
+            try (InputStream inputStream = NewProjectDialog.class.getResourceAsStream(PATHS.COUNTRIES_RESOURCE)) {
+                if (inputStream == null) {
+                    throw new IOException(MESSAGES.COUNTRIES_NOT_FOUND +
+                            NewProjectDialog.class.getPackage().getName().replace('.', '/') + "/" + PATHS.COUNTRIES_RESOURCE);
+                }
+
+                try (JsonReader jsonReader = Json.createReader(inputStream)) {
+                    countriesObj = jsonReader.readObject();
+                }
             }
 
             // Convert to display format: "Country Name (CODE)" -> "CODE"
@@ -280,7 +279,7 @@ public class NewProjectDialog extends Dialog<NewProjectDialog.ProjectData> {
             Platform.runLater(() -> populateCountryComboBox(cachedCountries));
         } else {
             // Load countries asynchronously
-            countryLoader.submit(() -> {
+            countryLoader.execute(() -> {
                 try {
                     loadCountriesFromJson();
                     Platform.runLater(() -> populateCountryComboBox(cachedCountries));
@@ -324,9 +323,9 @@ public class NewProjectDialog extends Dialog<NewProjectDialog.ProjectData> {
                 if (newValue == null || newValue.isEmpty()) {
                     filteredCountryNames.setPredicate(country -> true);
                 } else {
-                    final String lowerCaseFilter = newValue.toLowerCase();
+                    final String lowerCaseFilter = newValue.toLowerCase(Locale.ROOT);
                     filteredCountryNames.setPredicate(country ->
-                        country.toLowerCase().contains(lowerCaseFilter)
+                        country.toLowerCase(Locale.ROOT).contains(lowerCaseFilter)
                     );
                 }
 

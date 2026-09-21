@@ -1,5 +1,6 @@
 package org.speleodb.ariane.plugin.speleodb;
 
+import java.nio.charset.StandardCharsets;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -9,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -204,7 +206,7 @@ public final class SpeleoDBLogger {
      */
     private void initializeLogWriter() {
         try {
-            logWriter = new PrintWriter(new FileWriter(LOG_FILE_PATH, true));
+            logWriter = new PrintWriter(new FileWriter(LOG_FILE_PATH, StandardCharsets.UTF_8, true));
         } catch (IOException e) {
             System.err.println(LOG_ERROR_WRITING + e.getMessage());
             throw new RuntimeException(e);
@@ -288,7 +290,7 @@ public final class SpeleoDBLogger {
      * Formats a log message with timestamp and level
      */
     private String formatLogMessage(String level, String message) {
-        String timestamp = LocalDateTime.now().format(dateFormatter);
+        String timestamp = LocalDateTime.now(ZoneId.systemDefault()).format(dateFormatter);
         return String.format(LOG_FORMAT, timestamp, level, message);
     }
 

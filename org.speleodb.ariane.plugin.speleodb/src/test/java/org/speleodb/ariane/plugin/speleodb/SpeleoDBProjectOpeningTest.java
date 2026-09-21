@@ -75,6 +75,7 @@ class SpeleoDBProjectOpeningTest {
     private SpeleoDBController controller;
     private SpeleoDBService service;
     private SpeleoDBPlugin plugin;
+    private SimpleStringProperty commands;
     private final BlockingQueue<Runnable> workers = new LinkedBlockingQueue<>();
     private final AtomicReference<CaveSurveyInterface> survey = new AtomicReference<>();
     private final AtomicInteger centerRequests = new AtomicInteger();
@@ -135,7 +136,7 @@ class SpeleoDBProjectOpeningTest {
             new Scene(new VBox(controller.getSpeleoDBAnchorPane(), center));
             pane("projectActionsPane").setVisible(false);
             pane("projectsListingPane").setExpanded(true);
-            var commands = new SimpleStringProperty();
+            commands = new SimpleStringProperty();
             commands.addListener((property, before, after) -> {
                 if (DataServerCommands.LOAD.name().equals(after)) {
                     survey.set(emptySurvey());
@@ -199,6 +200,7 @@ class SpeleoDBProjectOpeningTest {
                     when(dialog.showAndWait()).thenReturn(Optional.of(
                         new NewProjectDialog.ProjectData("New cave", "Description", "US", "", ""))))) {
                 controller.onCreateNewProject(null);
+                assertThat(dialogs.constructed()).hasSize(1);
             }
         });
         runWorker(); // Create and acquire the lock; queue template loading.
@@ -263,7 +265,7 @@ class SpeleoDBProjectOpeningTest {
         survey.set(mode.equals("nullSurvey") ? null : data);
         onFx(() -> {
             if (mode.equals("emptiedBeforeSecond")) {
-                plugin.getCommandProperty().addListener((property, before, after) -> {
+                commands.addListener((property, before, after) -> {
                     // The host acknowledges REDRAW by setting DONE inside its listener.
                     if (redrawRequests.get() == 1) {
                         survey.set(emptySurvey());

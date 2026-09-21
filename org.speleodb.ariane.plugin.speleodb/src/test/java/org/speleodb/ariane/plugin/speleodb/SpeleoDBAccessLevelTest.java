@@ -64,11 +64,12 @@ class SpeleoDBAccessLevelTest {
         }
 
         @Test
-        @DisplayName("Should support ordinal values")
-        void shouldSupportOrdinalValues() {
-            assertThat(SpeleoDBConstants.AccessLevel.ADMIN.ordinal()).isEqualTo(0);
-            assertThat(SpeleoDBConstants.AccessLevel.READ_AND_WRITE.ordinal()).isEqualTo(1);
-            assertThat(SpeleoDBConstants.AccessLevel.READ_ONLY.ordinal()).isEqualTo(2);
+        @DisplayName("Should declare access levels in permission order")
+        void shouldDeclareAccessLevelsInPermissionOrder() {
+            assertThat(SpeleoDBConstants.AccessLevel.values()).containsExactly(
+                SpeleoDBConstants.AccessLevel.ADMIN,
+                SpeleoDBConstants.AccessLevel.READ_AND_WRITE,
+                SpeleoDBConstants.AccessLevel.READ_ONLY);
         }
 
         @Test
@@ -99,13 +100,13 @@ class SpeleoDBAccessLevelTest {
         @Test
         @DisplayName("Should maintain proper permission hierarchy")
         void shouldMaintainProperPermissionHierarchy() {
-            // ADMIN should be the highest level (ordinal 0)
-            assertThat(SpeleoDBConstants.AccessLevel.ADMIN.ordinal())
-                .isLessThan(SpeleoDBConstants.AccessLevel.READ_AND_WRITE.ordinal());
+            // ADMIN should precede READ_AND_WRITE
+            assertThat(SpeleoDBConstants.AccessLevel.ADMIN.compareTo(SpeleoDBConstants.AccessLevel.READ_AND_WRITE))
+                .isLessThan(0);
 
             // READ_AND_WRITE should be higher than READ_ONLY
-            assertThat(SpeleoDBConstants.AccessLevel.READ_AND_WRITE.ordinal())
-                .isLessThan(SpeleoDBConstants.AccessLevel.READ_ONLY.ordinal());
+            assertThat(SpeleoDBConstants.AccessLevel.READ_AND_WRITE.compareTo(SpeleoDBConstants.AccessLevel.READ_ONLY))
+                .isLessThan(0);
         }
 
         @Test

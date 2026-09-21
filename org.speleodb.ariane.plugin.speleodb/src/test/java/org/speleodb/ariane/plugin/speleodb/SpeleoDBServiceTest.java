@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,9 +43,11 @@ class SpeleoDBServiceTest {
     static void cleanupTestEnvironment() throws IOException {
         Path testDir = Paths.get(TEST_ARIANE_DIR);
         if (Files.exists(testDir)) {
-            Files.walk(testDir)
-                .map(Path::toFile)
-                .forEach(File::delete);
+            try (var paths = Files.walk(testDir)) {
+                paths.sorted(java.util.Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+            }
         }
     }
 
@@ -57,7 +60,7 @@ class SpeleoDBServiceTest {
         assertThat(actualPath).isEqualTo(expectedPath);
 
         Path testFile = Paths.get(TEST_ARIANE_DIR + File.separator + projectId + PATHS.TML_FILE_EXTENSION);
-        Files.write(testFile, "test content".getBytes());
+        Files.write(testFile, "test content".getBytes(StandardCharsets.UTF_8));
         assertThat(testFile).exists();
 
         Files.delete(testFile);
