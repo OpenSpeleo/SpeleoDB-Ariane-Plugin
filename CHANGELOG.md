@@ -14,6 +14,9 @@ details are intentionally omitted.
 
 ### Fixes
 
+- Creating a project now checks for unsaved changes and releases the previous
+  project's lock before switching. `f7aea97`
+
 ## v2026.09.16
 
 ### UI/UX
