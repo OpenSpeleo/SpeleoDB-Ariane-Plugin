@@ -68,4 +68,20 @@ From that point you can:
 
 - Unlock the project and quit Ariane
 
+## Creating or switching projects
+
+Save any unsaved survey edits before creating or opening another project. If
+Ariane reports unsaved changes, the plugin asks you to save and keeps the
+current survey open.
+
+To create a project, complete the create-project dialog. After the server
+creates the project, the plugin opens it through the same process used when
+selecting an existing project. It releases the previous project's lock if one is
+held, then opens the new project. If releasing the previous lock fails,
+switching stops. Cancelling the dialog or a failed creation request leaves the
+current project and its lock intact.
+
+See [project switching behavior and test coverage](docs/project-switching.md)
+for the developer reference and failure-handling details.
+
 Hope you have fun ! Feel free to give me any feedback

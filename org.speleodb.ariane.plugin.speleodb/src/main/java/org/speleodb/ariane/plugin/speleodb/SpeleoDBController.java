@@ -1529,7 +1529,7 @@ public class SpeleoDBController implements Initializable {
         button.prefWidthProperty().bind(projectListView.widthProperty().subtract(20)); // 20px for scrollbar/padding
 
         // Define the action handler for button clicks.
-        button.setOnAction(event -> handleProjectCardClickAction(event, projectItem));
+        button.setOnAction(event -> selectProject(projectItem));
 
         // Store project metadata as user data for later retrieval.
         button.setUserData(projectItem);
@@ -1751,18 +1751,22 @@ public class SpeleoDBController implements Initializable {
             return;
         }
 
+        if (!ensureCurrentSurveySaved()) {
+            return;
+        }
+
         // Show the new project dialog
         NewProjectDialog dialog = new NewProjectDialog();
         var result = dialog.showAndWait();
 
-        if (result.isPresent()) {
+        if (result.isPresent() && ensureCurrentSurveySaved()) {
             NewProjectDialog.ProjectData projectData = result.get();
             logger.info("Creating new project: " + projectData.getName());
 
             setUILoadingState(true);
 
             parentPlugin.executorService.execute(() -> {
-                boolean loadScheduled = false;
+                boolean selectionScheduled = false;
                 try {
                     // Create the project via API
                     JsonObject createdProject = speleoDBService.createProject(
@@ -1776,35 +1780,9 @@ public class SpeleoDBController implements Initializable {
                     logger.info("Project '" + projectData.getName() + "' created successfully!");
                     logger.info("Project ID: " + createdProject.getString("id"));
 
-                    // Use centralized lock acquisition with UI integration
-                    Boolean lockResult = acquireProjectLockWithUI(createdProject, "project creation", true);
-
-                    if (lockResult){
-                        // Success callback: Set up project files and load survey
-                        try {
-                            logger.info("Setting up new project files ...");
-
-                            // Create an empty TML file for the new project using shared service method
-                            String projectId = createdProject.getString("id");
-                            Path emptyTmlFile = speleoDBService.createEmptyTmlFileFromTemplate(projectId, projectData.getName());
-
-                            loadProject(createdProject, emptyTmlFile, projectData.getName(), true,
-                                () -> true, () -> {
-                                    showProjectActions(createdProject, true);
-                                    showSuccessAnimation(MESSAGES.PROJECT_CREATED_FOR_EDITING);
-                                });
-                            loadScheduled = true;
-
-                        } catch (IOException e) {
-                            logger.error("Error setting up new project: " + getSafeErrorMessage(e));
-                            Platform.runLater(() -> {
-                                showErrorAnimation("Project created but setup failed");
-                                listProjects();
-                            });
-                        }
-                    } else {
-                        listProjects();
-                    }
+                    // Creation uses the same switch, lock, and download path as a project card.
+                    Platform.runLater(() -> selectProject(createdProject));
+                    selectionScheduled = true;
 
                 } catch (Exception e) {
                     String errorMessage = getNetworkErrorMessage(e, "Project creation");
@@ -1823,8 +1801,8 @@ public class SpeleoDBController implements Initializable {
                     });
 
                 } finally {
-                    // Once loading starts, its completion callbacks own the busy state.
-                    if (!loadScheduled) {
+                    // Once selection starts, its completion callbacks own the busy state.
+                    if (!selectionScheduled) {
                         setUILoadingState(false);
                     }
                 }
@@ -1834,11 +1812,19 @@ public class SpeleoDBController implements Initializable {
         }
     }
 
+    /** Blocks replacement of a survey until the host reports that it has been saved. */
+    private boolean ensureCurrentSurveySaved() {
+        if (parentPlugin.getDirtyProperty().get()) {
+            SpeleoDBModals.showWarning(DIALOGS.TITLE_UNSAVED_CHANGES, MESSAGES.UNSAVED_PROJECT_CHANGES);
+            return false;
+        }
+        return true;
+    }
+
     // -------------------------- Project Opening -------------------------- //
 
-    private void clickSpeleoDBProject(ActionEvent e) throws URISyntaxException, IOException, InterruptedException {
+    private void openProject(JsonObject project) {
         parentPlugin.executorService.execute(() -> {
-            var project = (JsonObject) ((Button) e.getSource()).getUserData();
             String projectName = project.getString("name");
             String permissionString = project.getString("permission", "READ_ONLY");
 
@@ -1968,8 +1954,13 @@ public class SpeleoDBController implements Initializable {
     }
 
     private void loadProject(JsonObject project, Path tmlFilepath, String projectName, boolean hasWriteAccess) {
-        loadProject(project, tmlFilepath, projectName, hasWriteAccess, () -> true,
-            () -> showProjectActions(project, hasWriteAccess));
+        loadProject(project, tmlFilepath, projectName, hasWriteAccess, () -> {
+            // The host editor can still receive edits while the download is in flight.
+            if (!ensureCurrentSurveySaved()) {
+                throw new IllegalStateException(MESSAGES.UNSAVED_PROJECT_CHANGES);
+            }
+            return true;
+        }, () -> showProjectActions(project, hasWriteAccess));
     }
 
     private void loadProject(JsonObject project, Path tmlFilepath, String projectName, boolean hasWriteAccess,
@@ -2153,7 +2144,10 @@ public class SpeleoDBController implements Initializable {
                 loadProject(project, tmlFilepath, projectName, hasWriteAccess);
             });
 
-        } catch (IOException | InterruptedException | URISyntaxException e) {
+        } catch (IOException | InterruptedException | URISyntaxException | RuntimeException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             Platform.runLater(() -> {
                 String errorMessage = "Failed to download project: " + getSafeErrorMessage(e);
                 logger.error(errorMessage);
@@ -2164,12 +2158,16 @@ public class SpeleoDBController implements Initializable {
     }
 
     /**
-     * Handles the action performed when a project button is clicked.
+     * Selects an existing or newly created project through the shared switch path.
+     * Must run on the FX thread so unsaved changes are checked before releasing a lock.
      *
-     * @param event       The ActionEvent triggered by the button click.
      * @param projectItem The JsonObject containing project metadata.
      */
-    private void handleProjectCardClickAction(ActionEvent event, JsonObject projectItem) {
+    private void selectProject(JsonObject projectItem) {
+        if (!ensureCurrentSurveySaved()) {
+            setUILoadingState(false);
+            return;
+        }
         setUILoadingState(true);
 
         parentPlugin.executorService.execute(() -> {
@@ -2202,13 +2200,8 @@ public class SpeleoDBController implements Initializable {
                     }
                 }
 
-                try {
-                    logger.debug("Proceeding with project selection: " + selectedProjectName);
-                    clickSpeleoDBProject(event);
-                } catch (IOException | URISyntaxException e) {
-                    logger.error("Error opening project: " + getSafeErrorMessage(e));
-                    setUILoadingState(false);
-                }
+                logger.debug("Proceeding with project selection: " + selectedProjectName);
+                openProject(projectItem);
 
             } catch (InterruptedException e) {
                 logger.error("Error handling project action: " + e.getMessage());

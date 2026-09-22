@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -48,8 +49,8 @@ import jakarta.json.JsonObject;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -63,6 +64,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.util.Duration;
 
+import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.DIALOGS;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.MESSAGES;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.PATHS;
 import org.speleodb.ariane.plugin.speleodb.SpeleoDBConstants.TIMINGS;
@@ -76,6 +78,7 @@ class SpeleoDBProjectOpeningTest {
     private SpeleoDBService service;
     private SpeleoDBPlugin plugin;
     private SimpleStringProperty commands;
+    private SimpleBooleanProperty dirty;
     private final BlockingQueue<Runnable> workers = new LinkedBlockingQueue<>();
     private final AtomicReference<CaveSurveyInterface> survey = new AtomicReference<>();
     private final AtomicInteger centerRequests = new AtomicInteger();
@@ -109,6 +112,8 @@ class SpeleoDBProjectOpeningTest {
         };
         service = mock(SpeleoDBService.class);
         plugin = mock(SpeleoDBPlugin.class);
+        dirty = new SimpleBooleanProperty();
+        when(plugin.getDirtyProperty()).thenReturn(dirty);
         ExecutorService executor = mock(ExecutorService.class);
         Field executorField = SpeleoDBPlugin.class.getField("executorService");
         executorField.setAccessible(true);
@@ -122,7 +127,6 @@ class SpeleoDBProjectOpeningTest {
         doAnswer(call -> { survey.set(call.getArgument(0)); return null; }).when(plugin).setSurvey(any());
         tml = Files.write(root.resolve("empty.tml"), new byte[0]);
         when(service.downloadProject(any())).thenReturn(tml);
-        when(service.createEmptyTmlFileFromTemplate(anyString(), anyString())).thenReturn(tml);
         onFx(() -> {
             modals = mockStatic(SpeleoDBModals.class);
             tooltips = mockStatic(SpeleoDBTooltips.class);
@@ -186,10 +190,14 @@ class SpeleoDBProjectOpeningTest {
         }
     }
 
-    @Test
-    @DisplayName("Creating an empty project opens editable actions without redraw or centering requests")
-    void newProject() throws Exception {
-        open(project("READ_ONLY"));
+    @ParameterizedTest
+    @ValueSource(strings = {"READ_ONLY", "READ_AND_WRITE"})
+    @DisplayName("Creating a project uses normal switching and releases only a held lock")
+    void newProject(String permission) throws Exception {
+        JsonObject previous = project(permission);
+        when(service.acquireOrRefreshProjectMutex(previous)).thenReturn(true);
+        when(service.releaseProjectMutex(previous)).thenReturn(true);
+        open(previous);
         JsonObject created = project("ADMIN");
         when(service.createProject(anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(created);
         when(service.acquireOrRefreshProjectMutex(created)).thenReturn(true);
@@ -203,7 +211,10 @@ class SpeleoDBProjectOpeningTest {
                 assertThat(dialogs.constructed()).hasSize(1);
             }
         });
-        runWorker(); // Create and acquire the lock; queue template loading.
+        runWorker(); // Create via API and queue normal selection on FX.
+        onFx(() -> { });
+        runWorker(); // Release the previous lock, if held.
+        runWorker(); // Acquire the new lock and download the empty project.
         onFx(() -> assertThat(pane("projectActionsPane").isDisabled()).isTrue());
         finishLoad();
         onFx(() -> {
@@ -217,7 +228,166 @@ class SpeleoDBProjectOpeningTest {
                 + TIMINGS.CENTER_VIEW_DELAY_MILLIS + 300);
         assertThat(redrawRequests.get()).isZero();
         assertThat(centerRequests.get()).isZero();
-        verify(service).createEmptyTmlFileFromTemplate(created.getString("id"), "New cave");
+        var order = inOrder(service);
+        order.verify(service).createProject("New cave", "Description", "US", "", "");
+        if (permission.equals("READ_AND_WRITE")) {
+            order.verify(service).releaseProjectMutex(previous);
+        } else {
+            verify(service, never()).releaseProjectMutex(any());
+        }
+        order.verify(service).acquireOrRefreshProjectMutex(created);
+        order.verify(service).downloadProject(created);
+        verify(service, never()).createEmptyTmlFileFromTemplate(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("The host dirty property persists across reads and save notifications")
+    void persistentDirtyProperty() throws Exception {
+        onFx(() -> {
+            SpeleoDBPlugin realPlugin = new SpeleoDBPlugin();
+            try {
+                var hostProperty = realPlugin.getDirtyProperty();
+                assertThat(hostProperty.get()).isFalse();
+                hostProperty.set(true);
+                assertThat(realPlugin.getDirtyProperty()).isSameAs(hostProperty);
+                assertThat(realPlugin.getDirtyProperty().get()).isTrue();
+                hostProperty.set(false);
+                assertThat(realPlugin.getDirtyProperty().get()).isFalse();
+            } finally {
+                realPlugin.executorService.shutdownNow();
+            }
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"create", "select"})
+    @DisplayName("Unsaved changes block creation and normal selection before any lock is released")
+    void unsavedChangesBlockReplacement(String action) throws Exception {
+        JsonObject previous = openLockedProject();
+        onFx(() -> {
+            dirty.set(true);
+            try (var dialogs = mockConstruction(NewProjectDialog.class)) {
+                if (action.equals("create")) {
+                    controller.onCreateNewProject(null);
+                } else {
+                    invoke("selectProject", new Class<?>[] {JsonObject.class}, project("ADMIN"));
+                }
+                assertThat(dialogs.constructed()).isEmpty();
+            }
+            modals.verify(() -> SpeleoDBModals.showWarning(
+                    DIALOGS.TITLE_UNSAVED_CHANGES, MESSAGES.UNSAVED_PROJECT_CHANGES));
+            assertProjectPane(previous, false);
+        });
+        assertThat(workers).isEmpty();
+        verify(service, never()).createProject(anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(service, never()).releaseProjectMutex(any());
+    }
+
+    @Test
+    @DisplayName("Cancelling creation keeps the current project and its lock")
+    void cancelledCreation() throws Exception {
+        JsonObject previous = openLockedProject();
+        onFx(() -> {
+            try (var dialogs = mockConstruction(NewProjectDialog.class, (dialog, context) ->
+                    when(dialog.showAndWait()).thenReturn(Optional.empty()))) {
+                controller.onCreateNewProject(null);
+                assertThat(dialogs.constructed()).hasSize(1);
+            }
+            assertProjectPane(previous, false);
+        });
+        assertThat(workers).isEmpty();
+        verify(service, never()).createProject(anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(service, never()).releaseProjectMutex(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"apiFailure", "releaseFailure", "dirtyDuringCreation", "dirtyDuringDialog"})
+    @DisplayName("Creation failures and newly unsaved edits preserve the current survey and lock")
+    void creationDoesNotReplaceCurrentOnFailure(String failure) throws Exception {
+        JsonObject previous = openLockedProject();
+        CaveSurveyInterface previousSurvey = survey.get();
+        JsonObject created = project("ADMIN");
+        if (failure.equals("apiFailure")) {
+            when(service.createProject(anyString(), anyString(), anyString(), anyString(), anyString()))
+                    .thenThrow(new IllegalStateException("Creation failed"));
+        } else {
+            when(service.createProject(anyString(), anyString(), anyString(), anyString(), anyString()))
+                    .thenReturn(created);
+        }
+        onFx(() -> {
+            try (var dialogs = mockConstruction(NewProjectDialog.class, (dialog, context) ->
+                    when(dialog.showAndWait()).thenAnswer(call -> {
+                        if (failure.equals("dirtyDuringDialog")) dirty.set(true);
+                        return Optional.of(new NewProjectDialog.ProjectData("New cave", "Description", "US", "", ""));
+                    }))) {
+                controller.onCreateNewProject(null);
+                assertThat(dialogs.constructed()).hasSize(1);
+            }
+            if (failure.equals("dirtyDuringCreation")) dirty.set(true);
+        });
+        if (!failure.equals("dirtyDuringDialog")) {
+            runWorker(); // API creation.
+            onFx(() -> { });
+        }
+        if (failure.equals("releaseFailure")) {
+            runWorker(); // Failed release aborts the switch.
+            verify(service).releaseProjectMutex(previous);
+        } else {
+            verify(service, never()).releaseProjectMutex(any());
+        }
+        onFx(() -> {
+            assertProjectPane(previous, false);
+            assertThat(controller.hasActiveProjectLock()).isTrue();
+        });
+        assertThat(survey.get()).isSameAs(previousSurvey);
+        assertThat(workers).isEmpty();
+        verify(service, never()).acquireOrRefreshProjectMutex(created);
+        verify(service, never()).downloadProject(created);
+        if (failure.equals("dirtyDuringDialog")) {
+            verify(service, never()).createProject(anyString(), anyString(), anyString(), anyString(), anyString());
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"dirtyDuringDownload", "downloadFailure"})
+    @DisplayName("A failed download or edits made during download never replace the current survey")
+    void failedDownloadDoesNotReplaceSurvey(String failure) throws Exception {
+        JsonObject previous = openLockedProject();
+        CaveSurveyInterface previousSurvey = survey.get();
+        JsonObject target = project("ADMIN");
+        when(service.releaseProjectMutex(previous)).thenReturn(true);
+        when(service.acquireOrRefreshProjectMutex(target)).thenReturn(true);
+        when(service.downloadProject(target)).thenAnswer(call -> {
+            if (failure.equals("downloadFailure")) {
+                throw new IllegalStateException("Download failed");
+            }
+            onFx(() -> dirty.set(true));
+            return tml;
+        });
+        onFx(() -> invoke("selectProject", new Class<?>[] {JsonObject.class}, target));
+        runWorker(); // Release previous lock.
+        runWorker(); // Acquire target lock and attempt download.
+        onFx(() -> { });
+        if (failure.equals("dirtyDuringDownload")) {
+            runWorker(); // Recheck unsaved edits immediately before host LOAD.
+        }
+        onFx(() -> { });
+        onFx(() -> {
+            assertThat(pane("projectsListingPane").isDisabled()).isFalse();
+            if (failure.equals("dirtyDuringDownload")) {
+                modals.verify(() -> SpeleoDBModals.showWarning(
+                        DIALOGS.TITLE_UNSAVED_CHANGES, MESSAGES.UNSAVED_PROJECT_CHANGES));
+            }
+        });
+        assertThat(survey.get()).isSameAs(previousSurvey);
+        assertThat(workers).isEmpty();
+    }
+
+    private JsonObject openLockedProject() throws Exception {
+        JsonObject previous = project("READ_AND_WRITE");
+        when(service.acquireOrRefreshProjectMutex(previous)).thenReturn(true);
+        open(previous);
+        return previous;
     }
 
     @Test
@@ -286,10 +456,9 @@ class SpeleoDBProjectOpeningTest {
 
     private void open(JsonObject project) throws Exception {
         onFx(() -> {
-            Button card = new Button();
-            card.setUserData(project);
-            invoke("clickSpeleoDBProject", new Class<?>[] {ActionEvent.class}, new ActionEvent(card, card));
+            invoke("selectProject", new Class<?>[] {JsonObject.class}, project);
         });
+        runWorker(); // Normal project switch.
         runWorker(); // Lock attempt and download.
         finishLoad();
     }
@@ -298,6 +467,7 @@ class SpeleoDBProjectOpeningTest {
         runWorker(); // Host LOAD, then successful completion on FX.
         onFx(() -> { });
         runWorker(); // Metadata and list refresh scheduling.
+        runWorker(); // Survey metadata.
         runWorker(); // Actual list refresh.
         onFx(() -> { });
         onFx(() -> { }); // Drain loading-state update queued by completion.

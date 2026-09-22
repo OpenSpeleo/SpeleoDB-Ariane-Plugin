@@ -22,6 +22,8 @@ import com.arianesline.ariane.plugin.api.PluginType;
 import com.arianesline.cavelib.api.CaveSurveyInterface;
 
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.fxml.FXMLLoader;
@@ -41,6 +43,7 @@ public class SpeleoDBPlugin implements DataServerPlugin {
 
     public static final int TIMEOUT = NETWORK.DEFAULT_TIMEOUT_MILLIS;
     private final StringProperty commandProperty = new SimpleStringProperty();
+    private final BooleanProperty dirtyProperty = new SimpleBooleanProperty();
     private CaveSurveyInterface survey;
     private File surveyFile;
     private final AtomicBoolean lock = new AtomicBoolean(false);
@@ -77,6 +80,12 @@ public class SpeleoDBPlugin implements DataServerPlugin {
     public synchronized void setSurveyFile(File file) {
         surveyFile = file;
 
+    }
+
+    /** Stable property for the host to publish unsaved survey changes. */
+    @Override
+    public BooleanProperty getDirtyProperty() {
+        return dirtyProperty;
     }
 
     @Override

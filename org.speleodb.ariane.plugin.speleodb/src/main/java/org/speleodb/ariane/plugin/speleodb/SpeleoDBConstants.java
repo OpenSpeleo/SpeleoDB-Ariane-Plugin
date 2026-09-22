@@ -242,7 +242,7 @@ public final class SpeleoDBConstants {
 
     // ==================== UI MESSAGES ====================
     public static final class MESSAGES {
-        public static final String PROJECT_CREATED_FOR_EDITING = "Project created and locked for editing!";
+        public static final String UNSAVED_PROJECT_CHANGES = "Save your current survey before creating or opening another project.";
         public static final String PROJECT_PANE_TITLE = "Project: `%s`.";
         public static final String PROJECT_EDITING_STATUS = "You are currently editing this project.\nClose Ariane to unlock the project.";
         public static final String PROJECT_READ_ONLY_STATUS = "Read-only project.\nYou are not allowed to modify this project.";
@@ -336,6 +336,7 @@ public final class SpeleoDBConstants {
         public static final String TITLE_UPLOAD_MESSAGE_REQUIRED = "Upload Message Required";
         public static final String TITLE_SUCCESS_CELEBRATION = "Upload Successful!";
         public static final String TITLE_PROJECT_NOT_SAVED = "Project Not Saved";
+        public static final String TITLE_UNSAVED_CHANGES = "Unsaved Changes";
 
         // Announcement DefaultValues
         public static final String DEFAULT_ANNOUNCEMENT_TITLE = "SpeleoDB";
