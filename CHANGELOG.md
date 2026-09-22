@@ -14,6 +14,10 @@ details are intentionally omitted.
 
 ### Fixes
 
+## v2026.09.22
+
+### Fixes
+
 - Creating a project now checks for unsaved changes and releases the previous
   project's lock before switching. `f7aea97`
 
