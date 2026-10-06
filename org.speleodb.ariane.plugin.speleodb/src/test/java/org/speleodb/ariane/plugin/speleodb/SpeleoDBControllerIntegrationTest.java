@@ -148,7 +148,7 @@ class SpeleoDBControllerIntegrationTest {
             assertThat(controller.getPrefPasswordConstant()).isEqualTo("SDB_PASSWORD");
             assertThat(controller.getPrefOAuthTokenConstant()).isEqualTo("SDB_OAUTH_TOKEN");
             assertThat(controller.getPrefInstanceConstant()).isEqualTo("SDB_INSTANCE");
-            assertThat(controller.getDefaultInstanceConstant()).isEqualTo("www.speleoDB.org");
+            assertThat(controller.getDefaultInstanceConstant()).isEqualTo("www.speleodb.org");
         }
 
         @Test
@@ -327,7 +327,7 @@ class SpeleoDBControllerIntegrationTest {
             controller.setDebugMode(false);
 
             String url = controller.generateAboutUrl();
-            assertThat(url).isEqualTo("https://www.speleoDB.org/webview/ariane/");
+            assertThat(url).isEqualTo("https://www.speleodb.org/webview/ariane/");
         }
 
         @Test
@@ -337,7 +337,7 @@ class SpeleoDBControllerIntegrationTest {
             controller.setDebugMode(false);
 
             String url = controller.generateAboutUrl();
-            assertThat(url).isEqualTo("https://www.speleoDB.org/webview/ariane/");
+            assertThat(url).isEqualTo("https://www.speleodb.org/webview/ariane/");
         }
 
         @Test
@@ -347,7 +347,7 @@ class SpeleoDBControllerIntegrationTest {
             controller.setDebugMode(false);
 
             String url = controller.generateAboutUrl();
-            assertThat(url).isEqualTo("https://www.speleoDB.org/webview/ariane/");
+            assertThat(url).isEqualTo("https://www.speleodb.org/webview/ariane/");
         }
     }
 
@@ -629,7 +629,7 @@ class SpeleoDBControllerIntegrationTest {
 
         public String generateAboutUrl() {
             String instance = (instanceValue == null || instanceValue.trim().isEmpty())
-                ? "www.speleoDB.org" : instanceValue;
+                ? "www.speleodb.org" : instanceValue;
             String protocol = debugModeValue ? "http" : "https";
             return protocol + "://" + instance + "/webview/ariane/";
         }
@@ -690,7 +690,7 @@ class SpeleoDBControllerIntegrationTest {
         public String getPrefOAuthTokenConstant() { return "SDB_OAUTH_TOKEN"; }
         public String getPrefInstanceConstant() { return "SDB_INSTANCE"; }
 
-        public String getDefaultInstanceConstant() { return "www.speleoDB.org"; }
+        public String getDefaultInstanceConstant() { return "www.speleodb.org"; }
 
         // Simulate access level methods
         public AccessLevel getProjectAccessLevel(JsonObject project) {
