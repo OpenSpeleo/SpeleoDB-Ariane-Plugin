@@ -2,8 +2,8 @@
 
 ## FXML Layout
 
-The plugin's entire UI is defined in a single FXML file:
-`src/main/resources/fxml/SpeleoDB.fxml`.
+The plugin's main panel is defined in a single FXML file (dialogs are built in
+Java): `src/main/resources/fxml/SpeleoDB.fxml`.
 
 The controller (`SpeleoDBController`) is set programmatically via
 `FXMLLoader.setController()` rather than declared in FXML, since the controller
@@ -76,7 +76,7 @@ Material Design styling.
 - `applySimpleDialogStyle(pane)`: white background, shadow, transparent header
   panel
 - `applyMaterialButton(button, color, colorDark, width, fontSize, padV, padH, radius)`:
-  unified button styling
+  unified button styling, also used by the convenience wrappers
 - `applyCenteredButtonBar(pane)`: centers button bar with separator
 - CSS pre-warming via `preWarmModalSystem()` at startup
 
@@ -93,20 +93,22 @@ Popup-based notifications displayed at the top center of the main window.
 | INFO    | i       | 4s       | In + Out |
 | WARNING | warning | 4s       | In + Out |
 
-Initialization: `SpeleoDBTooltips.initialize(stage)` must be called once during
-startup.
+Initialize once during startup with `SpeleoDBTooltips.initialize(stage)` or the
+`initialize(scene)` overload once the scene has a window. The controller uses
+the scene overload, including a scene-property listener when the panel is not
+yet attached.
 
 ## CSS Architecture
 
 ### Stylesheets
 
-- `src/main/resources/css/fxmlmain.css`: main stylesheet (~636 lines), Lato font
-  integration
+- `src/main/resources/css/fxmlmain.css`: main stylesheet, Lato font integration
 - `src/main/resources/css/slider.css`: slider-specific styling
 
 ### Style Constants
 
-All inline `-fx-*` styles are defined in `SpeleoDBConstants.STYLES`:
+Shared inline style constants live in `SpeleoDBConstants.STYLES`; existing code
+also contains some inline literals. Shared constants include:
 
 - `MATERIAL_COLORS`: Material Design color palette (PRIMARY, SUCCESS, ERROR,
   WARNING, INFO)
@@ -114,7 +116,19 @@ All inline `-fx-*` styles are defined in `SpeleoDBConstants.STYLES`:
 
 ### Fonts
 
-Bundled Lato font family (10 weights) in `src/main/resources/fonts/`.
+Bundled Lato font variants in `src/main/resources/fonts/` (`Lato-*.ttf`).
+
+### Other resources
+
+Paths below are relative to `src/main/resources/`:
+
+| Resource                                             | Purpose                                                          |
+| ---------------------------------------------------- | ---------------------------------------------------------------- |
+| `images/logo.png`                                    | Window icon and plugin branding                                  |
+| `images/icons/`                                      | Project and lock icons                                           |
+| `images/success_gifs/`                               | Upload success animations                                        |
+| `org/speleodb/ariane/plugin/speleodb/countries.json` | Country choices; loaded relative to `NewProjectDialog`'s package |
+| `tml/empty_project.tml`                              | Template for projects without uploaded survey content            |
 
 ## Threading Model
 
@@ -135,3 +149,6 @@ Bundled Lato font family (10 weights) in `src/main/resources/fonts/`.
 Background tasks post results back to FX thread via `Platform.runLater()`. The
 controller's `fxmlInitializedLatch` prevents background threads from accessing
 `@FXML` fields before `initialize()` completes.
+
+UI implementation conventions are in
+[AGENTS.md](../../AGENTS.md#javafx-ui-conventions).

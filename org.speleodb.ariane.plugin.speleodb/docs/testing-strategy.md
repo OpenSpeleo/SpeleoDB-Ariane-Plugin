@@ -2,12 +2,16 @@
 
 ## Test Stack
 
-| Component | Version      | Purpose                |
-| --------- | ------------ | ---------------------- |
-| JUnit 5   | 5.10.1       | Test framework         |
-| AssertJ   | 3.24.2       | Fluent assertions      |
-| Mockito   | 5.8.0        | Mocking framework      |
-| TestFX    | 4.0.16-alpha | JavaFX testing support |
+Dependency coordinates are centralized in the repository-root
+`gradle.properties`:
+
+| Component | Version property  | Purpose                                                   |
+| --------- | ----------------- | --------------------------------------------------------- |
+| JUnit 5   | `junitBomVersion` | Test framework (`org.junit.jupiter.api.*`)                |
+| AssertJ   | `assertjVersion`  | Fluent assertions                                         |
+| Mockito   | `mockitoVersion`  | Mocks and spies; also used by the explicit test JVM agent |
+| TestFX    | `testfxVersion`   | JavaFX component testing                                  |
+| WireMock  | `wiremockVersion` | Local HTTP server for hermetic service tests              |
 
 ## Test Categories
 
@@ -30,7 +34,7 @@
   operations
 - `TestFixturesTest`: test infrastructure validation
 
-### Controller Logic Tests (Extracted Logic, No FX)
+### Legacy Controller Logic Tests (Extracted Logic)
 
 - `SpeleoDBControllerTest`: via inner `SpeleoDBControllerLogic` class
 - `SpeleoDBControllerSortingTest`: via inner `SpeleoDBControllerSortingLogic`
@@ -82,18 +86,33 @@
 - `SpeleoDBPluginUpdateDownloadApiTest`: binary plugin-download behavior and
   redirects
 
-### Live API Tests (Optional, Requires `.env`)
+### Live API Tests (Optional, Requires Configuration)
 
 - `SpeleoDBAPITest`: full round-trip tests against a real SpeleoDB instance
-- `TestConfigSuccess`: live API configuration validation
-- `TestEnvironmentConfig`: `.env` loading and test gating
-- Gated by `TestEnvironmentConfig` loading `.env` from the repo or plugin-module
-  directory
+- `TestEnvironmentConfig`: configuration loading and test gating (a helper, not
+  a standalone test)
+- `TestEnvironmentConfigEnvFallbackTest`: hermetic tests of configuration
+  fallback
+
+For each key, the loader resolves nonempty values from a discovered `.env`, then
+the process environment, then test JVM system properties. It searches `.env`,
+`org.speleodb.ariane.plugin.speleodb/.env`, `../.env`, and `../../.env`,
+relative to the test JVM's working directory. A file is optional; CI supplies
+environment variables. See the plugin module's `.env.dist` for the supported
+configuration.
+
+`SpeleoDBAPITest` skips when `API_TEST_ENABLED` is false or required
+configuration is unavailable. The flag defaults to true, but an instance URL
+plus either an OAuth token or email/password credentials are still required.
+Root Gradle test configuration forwards the supported `SPELEODB_*` and `API_*`
+environment keys to the test JVM.
 
 ## Headless JavaFX Rendering
 
-Tests run without a display server using these JVM properties (set in root
-`build.gradle`):
+Tests use software rendering with these JVM properties (set in root
+`build.gradle`). These properties do not remove the Linux JavaFX GTK toolkit
+requirement for a display server; CI installs Xvfb and runs tests under
+`xvfb-run -a`:
 
 ```
 -Djava.awt.headless=true
@@ -105,7 +124,9 @@ Tests run without a display server using these JVM properties (set in root
 --add-opens=java.base/java.lang=ALL-UNNAMED
 ```
 
-FX toolkit is initialized in `@BeforeAll` via `Platform.startup(() -> {})`.
+Gradle sets a 120-second JUnit default timeout with `SEPARATE_THREAD` mode and
+logs started, passed, failed, and skipped tests. Test authoring and toolkit
+setup conventions are in [AGENTS.md](../../AGENTS.md#testing-conventions).
 
 ## Test Mode Preference Isolation
 
@@ -125,6 +146,8 @@ Reusable test data factory:
 - `generateProjectName()` / `generateProjectDescription()`: realistic random
   data
 - `calculateChecksum(Path)`: delegates to `SpeleoDBService.calculateSHA256()`
+- `ProjectFixture.generateTmlFile(projectId)`: prepares TML data from the
+  bundled artifact; ZIP helpers also support archive-validation tests
 - `copyTestTmlFile(projectId)`: copies test TML from
   `src/test/resources/artifacts/`
 - `RoundTripResult`: value class for upload/download verification
@@ -145,8 +168,8 @@ Not all tests are fully redirected to temporary directories yet.
 
 The following areas have limited or no automated test coverage:
 
-- `SpeleoDBController` (3900 lines): most logic is tested via extracted inner
-  classes, but direct controller flow coverage is limited
+- `SpeleoDBController`: older logic tests use extracted inner classes; direct
+  flow tests cover selected upload, import, lock, and project-opening behavior
 - `SpeleoDBLogger`: rotation logic is tested implicitly but not with size-based
   triggers
 - WebView integration: no automated testing of the in-plugin browser
