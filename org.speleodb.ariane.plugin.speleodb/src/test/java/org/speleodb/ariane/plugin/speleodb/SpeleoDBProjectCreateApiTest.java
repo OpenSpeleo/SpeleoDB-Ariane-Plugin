@@ -93,18 +93,18 @@ class SpeleoDBProjectCreateApiTest extends AbstractSpeleoDBServiceWireMockTest {
     }
 
     @Test
-    @DisplayName("201 with null/blank lat/lon: request body omits the coordinate fields")
+    @DisplayName("Creates a project with an empty description and omits blank coordinates")
     void requestBodyWithoutCoordinates() throws Exception {
         stubV2Created(post(urlEqualTo(API.PROJECTS_ENDPOINT)),
                 Json.createObjectBuilder().add("id", "abc").add("name", "n").build());
 
-        service.createProject("Cave B", "Survey", "GB", "  ", null);
+        service.createProject("Cave B", "", "GB", "  ", null);
 
         wm.verify(postRequestedFor(urlEqualTo(API.PROJECTS_ENDPOINT))
                 .withRequestBody(equalToJson("""
                         {
                           "name": "Cave B",
-                          "description": "Survey",
+                          "description": "",
                           "country": "GB",
                           "type": "ARIANE"
                         }

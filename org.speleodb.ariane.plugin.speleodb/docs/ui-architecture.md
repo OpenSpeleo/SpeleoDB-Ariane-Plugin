@@ -31,9 +31,9 @@ not change the selected pane.
   are not allowed to modify this project.” The status remains readable and the
   project listing remains accessible. This applies both to read-only permissions
   and to an unsuccessful lock acquisition.
-- **New project:** creation acquires the lock and loads the empty template
-  before selecting the editable project pane and showing the creation success
-  message. The change description starts empty.
+- **New project:** the description is optional. Creation acquires the lock and
+  loads the empty template before selecting the editable project pane and
+  showing the creation success message. The change description starts empty.
 
 `currentProject` continues to represent a project with an acquired editing lock;
 showing a read-only project does not grant a lock or enable upload shortcuts.

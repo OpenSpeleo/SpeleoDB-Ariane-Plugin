@@ -205,12 +205,7 @@ public class NewProjectDialog extends Dialog<NewProjectDialog.ProjectData> {
     private VBox createDescriptionSection() {
         VBox section = new VBox(DIMENSIONS.SECTION_SPACING);
 
-        // Create label with required indicator in HBox
         Label descLabel = new Label(DIALOGS.LABEL_DESCRIPTION);
-        Label asterisk = new Label(DIALOGS.ASTERISK_REQUIRED);
-        asterisk.setStyle(STYLES.REQUIRED_FIELD_STYLE);
-
-        HBox labelBox = new HBox(descLabel, asterisk);
         descLabel.setFont(Font.font(Font.getDefault().getFamily(), FontWeight.MEDIUM, DIMENSIONS.LABEL_FONT_SIZE));
 
         descriptionField = new TextArea();
@@ -218,7 +213,7 @@ public class NewProjectDialog extends Dialog<NewProjectDialog.ProjectData> {
         descriptionField.setPrefRowCount(DIMENSIONS.DESCRIPTION_FIELD_ROWS);
         descriptionField.setPrefWidth(DIMENSIONS.FIELD_PREF_WIDTH);
 
-        section.getChildren().addAll(labelBox, descriptionField);
+        section.getChildren().addAll(descLabel, descriptionField);
         return section;
     }
 

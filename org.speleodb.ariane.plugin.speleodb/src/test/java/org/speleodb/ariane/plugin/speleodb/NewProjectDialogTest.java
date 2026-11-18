@@ -30,19 +30,6 @@ class NewProjectDialogTest {
             assertThat(expectedTitle).isEqualTo("Create New Project");
         }
 
-        @Test
-        @DisplayName("Should have required form fields")
-        void shouldHaveRequiredFormFields() {
-            // Test that all required fields are identified
-            String[] requiredFields = {"name", "description", "country"};
-            String[] optionalFields = {"latitude", "longitude"};
-
-            assertThat(requiredFields).hasSize(3);
-            assertThat(optionalFields).hasSize(2);
-
-            assertThat(requiredFields).contains("name", "description", "country");
-            assertThat(optionalFields).contains("latitude", "longitude");
-        }
     }
 
     @Nested
